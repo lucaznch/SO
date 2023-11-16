@@ -51,10 +51,10 @@ Linhas iniciadas com o caractere ‘**#**’ são consideradas comentários e s�
     * Exemplo: ‘# Isto é um comentário e será ignorado’.
 
 
-## 1ª parte do projeto
+# 1ª parte do projeto
 A primeira parte do projeto consiste em 3 exercícios.
 
-**Exercício 1. Interação com o sistema de ficheiros**
+## Exercício 1. Interação com o sistema de ficheiros
 
 O código base recebe pedidos apenas através do terminal (std-input). 
 Nesse exercício pretende-se alterar o código base de forma que passe a processar pedidos em “batch” obtidos a partir de ficheiros.
@@ -73,7 +73,7 @@ Exemplo de output do ficheiro de teste /jobs/test.jobs:
 ```
 
 
-**Exercício 2. Paralelização usando múltiplos processos**
+## Exercício 2. Paralelização usando múltiplos processos
 
 Após terem realizado o Exercício 1, os alunos devem estender o código criado de forma que cada ficheiro “.job” venha a ser processado por um processo filho em paralelo.
 O programa deverá garantir que o número máximo de processos filhos ativos em paralelo seja limitado por uma constante, MAX_PROC, que deverá ser passada por linha de comando ao arranque do programa.
@@ -82,7 +82,7 @@ Os alunos, por simplicidade, não precisam de garantir nem verificar que esta co
 O processo pai deverá aguardar a conclusão de cada processo filho e imprimir pelo std-output o estado de terminação correspondente.
 
 
-**Exercício 3. Paralelização usando múltiplas tarefas**
+## Exercício 3. Paralelização usando múltiplas tarefas
 
 Neste exercício pretende-se tirar partido da possibilidade de paralelizar o processamento de cada ficheiro .job usando múltiplas tarefas.
 O número de tarefas a utilizar para o processamento de cada ficheiro “.job”, **MAX_THREADS**, deverá ser especificado por linha de comando no arranque do programa.
