@@ -3,7 +3,9 @@
 ### O objetivo deste projeto é desenvolver o IST-EMS, um sistema de gestão de eventos que permite a criação, reserva e verificação de disponibilidade de bilhetes para eventos, como concertos e espetáculos teatrais.
 
 O IST-EMS explora técnicas de paralelização baseadas em múltiplos processos e múltiplas tarefas de forma a acelerar o processamento de pedidos.
+
 Ao desenvolver o IST-SEM os alunos aprenderão também como implementar mecanismos de sincronização escaláveis entre tarefas bem como mecanismos de comunicação entre processos (FIFOs e signals).
+
 O IST-EMS irá também interagir com o sistema de ficheiros oferecendo portanto a possibilidade de aprender a utilizar as interfaces de programação de sistemas de ficheiros POSIX.
 
 **Código base**
@@ -118,8 +120,11 @@ Pretende-se também **_estender_** o conjunto de comandos aceites pelo sistema c
         * A tarefa com thread_id = 5, ou seja a 5ª tarefa a ser ativada, aguarda 3 segundos antes de executar o próximo comando.
 
 * **BARRIER**
-    * Obriga todas as tarefas a aguardarem a finalização dos comandos anteriores à **BARRIER** antes de retomarem a execução dos comandos seguintes.
+    
+    Obriga todas as tarefas a aguardarem a finalização dos comandos anteriores à **BARRIER** antes de retomarem a execução dos comandos seguintes.
+
     Para implementar esta funcionalidade, as tarefas, ao encontrarem o comando **BARRIER**, deverão retornar da função executada pela pthread_create devolvendo um valor de retorno ad hoc (p.e., o valor 1) de forma a indicar que encontraram o comando **BARRIER** e que não acabaram de processar o ficheiro de comandos (nesse caso as tarefas deveriam devolver um valor de retorno diferente, p.e., 0).
+
     A tarefa main, ou seja a tarefa que arranca as tarefas “trabalhadoras” usando pthread_create() deverá observar o valor de retorno devolvido pelas tarefas trabalhadoras usando pthread_join e, caso detecte que o comando **BARRIER** foi encontrado, arranca uma nova ronda de processamento paralelo que deverá retomar a seguir ao comando **BARRIER**.
 
     Exemplos de utilização:
@@ -127,6 +132,9 @@ Pretende-se também **_estender_** o conjunto de comandos aceites pelo sistema c
         * Todas as tarefas devem chegar a este ponto antes de prosseguirem com os seus próximos comandos.
 
 
+
 Este exercício deveria ser realizado idealmente a partir do código obtido após a resolução do exercício 2.
+
 Neste caso o grau de paralelismo atingível será **MAX_PROC * MAX_THREADS**.
+
 Contudo, não serão aplicadas penalizações se a solução deste exercício for realizada a partir da solução do exercício 1.
