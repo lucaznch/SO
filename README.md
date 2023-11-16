@@ -57,13 +57,19 @@ A primeira parte do projeto consiste em 3 exercícios.
 ## Exercício 1. Interação com o sistema de ficheiros
 
 O código base recebe pedidos apenas através do terminal (std-input). 
+
 Nesse exercício pretende-se alterar o código base de forma que passe a processar pedidos em “batch” obtidos a partir de ficheiros.
+
 Para este efeito o IST-EMS deve passar a receber como argumento na linha de comando o percurso para uma diretoria “JOBS”, onde se encontram armazenados os ficheiros de comandos.
+
 O IST-EMS deverá obter a lista de ficheiros com extensão “.jobs” contidos na diretoria “JOB”.
+
 Estes ficheiros contêm sequências de comandos que respeitam a mesma sintaxe aceite pelo código base.
-O IST-EMS processa todos os comandos em cada um dos ficheiros “.jobs”, criando um correspondente ficheiro de output com o mesmo nome e extensão “.out” que reporta o
-estado de cada evento.
+
+O IST-EMS processa todos os comandos em cada um dos ficheiros “.jobs”, criando um correspondente ficheiro de output com o mesmo nome e extensão “.out” que reporta o estado de cada evento.
+
 O acesso e a manipulação de ficheiros deverão ser efetuados através da interface POSIX baseada em descritores de ficheiros, e não usando a biblioteca stdio.h e a abstração de FILE stream.
+
 
 Exemplo de output do ficheiro de teste /jobs/test.jobs:
 ```
@@ -76,19 +82,29 @@ Exemplo de output do ficheiro de teste /jobs/test.jobs:
 ## Exercício 2. Paralelização usando múltiplos processos
 
 Após terem realizado o Exercício 1, os alunos devem estender o código criado de forma que cada ficheiro “.job” venha a ser processado por um processo filho em paralelo.
+
 O programa deverá garantir que o número máximo de processos filhos ativos em paralelo seja limitado por uma constante, MAX_PROC, que deverá ser passada por linha de comando ao arranque do programa.
+
 Para garantir a correção desta solução os ficheiros “.jobs” deverão conter pedidos relativos a eventos distintos, isto é, dois ficheiros “.jobs” não podem conter pedidos relativos ao mesmo evento.
+
 Os alunos, por simplicidade, não precisam de garantir nem verificar que esta condição seja respeitada (podem assumir que será sempre respeitada nos testes realizados em fase de avaliação).
+
 O processo pai deverá aguardar a conclusão de cada processo filho e imprimir pelo std-output o estado de terminação correspondente.
+
 
 
 ## Exercício 3. Paralelização usando múltiplas tarefas
 
 Neste exercício pretende-se tirar partido da possibilidade de paralelizar o processamento de cada ficheiro .job usando múltiplas tarefas.
+
 O número de tarefas a utilizar para o processamento de cada ficheiro “.job”, **MAX_THREADS**, deverá ser especificado por linha de comando no arranque do programa.
+
 Serão valorizadas soluções de sincronização no acesso ao estado dos eventos que maximizem o grau de paralelismo atingível pelo sistema.
+
 Contudo, a solução de sincronização desenvolvida deverá garantir que qualquer operação seja executada de forma“atómica” (isto é, “tudo ou nada”). 
+
 Por exemplo, deverá ser evitado que, ao executar uma operação “SHOW” para um evento, possam ser observadas reservas parcialmente executadas, ou seja, reservas para as quais apenas um subconjunto de todos os lugares pretendidos tenham sido atribuídos.
+
 
 Pretende-se também **_estender_** o conjunto de comandos aceites pelo sistema com estes dois comandos adicionais:
 
