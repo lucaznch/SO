@@ -90,25 +90,25 @@ Serão valorizadas soluções de sincronização no acesso ao estado dos eventos
 Contudo, a solução de sincronização desenvolvida deverá garantir que qualquer operação seja executada de forma“atómica” (isto é, “tudo ou nada”). 
 Por exemplo, deverá ser evitado que, ao executar uma operação “SHOW” para um evento, possam ser observadas reservas parcialmente executadas, ou seja, reservas para as quais apenas um subconjunto de todos os lugares pretendidos tenham sido atribuídos.
 
-Pretende-se também _estender_ o conjunto de comandos aceites pelo sistema com estes dois comandos adicionais:
+Pretende-se também **_estender_** o conjunto de comandos aceites pelo sistema com estes dois comandos adicionais:
 
-    * **WAIT <delay_ms> [thread_id]** 
-        * Este comando injecta uma espera da duração especificada pelo primeiro parâmetro em todas as tarefas antes de processar o próximo comando, caso o parâmetro opcional thread_id não seja utilizado. Caso este parâmetro seja utilizado, o atraso é injetado apenas na tarefa com identificador “thread_id”.
+* **WAIT <delay_ms> [thread_id]** 
+    * Este comando injecta uma espera da duração especificada pelo primeiro parâmetro em todas as tarefas antes de processar o próximo comando, caso o parâmetro opcional thread_id não seja utilizado. Caso este parâmetro seja utilizado, o atraso é injetado apenas na tarefa com identificador “thread_id”.
 
-        Exemplos de utilização:
-            * **WAIT 2000**
-                * Todas as tarefas devem aguardar 2 segundos antes de executarem o próximo comando.
-            * **WAIT 3000 5**
-                * A tarefa com thread_id = 5, ou seja a 5ª tarefa a ser ativada, aguarda 3 segundos antes de executar o próximo comando.
+    Exemplos de utilização:
+    * **WAIT 2000**
+        * Todas as tarefas devem aguardar 2 segundos antes de executarem o próximo comando.
+    * **WAIT 3000 5**
+        * A tarefa com thread_id = 5, ou seja a 5ª tarefa a ser ativada, aguarda 3 segundos antes de executar o próximo comando.
 
+* **BARRIER**
+    * Obriga todas as tarefas a aguardarem a finalização dos comandos anteriores à **BARRIER** antes de retomarem a execução dos comandos seguintes.
+    Para implementar esta funcionalidade, as tarefas, ao encontrarem o comando **BARRIER**, deverão retornar da função executada pela pthread_create devolvendo um valor de retorno ad hoc (p.e., o valor 1) de forma a indicar que encontraram o comando **BARRIER** e que não acabaram de processar o ficheiro de comandos (nesse caso as tarefas deveriam devolver um valor de retorno diferente, p.e., 0).
+    A tarefa main, ou seja a tarefa que arranca as tarefas “trabalhadoras” usando pthread_create() deverá observar o valor de retorno devolvido pelas tarefas trabalhadoras usando pthread_join e, caso detecte que o comando **BARRIER** foi encontrado, arranca uma nova ronda de processamento paralelo que deverá retomar a seguir ao comando **BARRIER**.
+
+    Exemplos de utilização:
     * **BARRIER**
-        * Obriga todas as tarefas a aguardarem a finalização dos comandos anteriores à **BARRIER** antes de retomarem a execução dos comandos seguintes.
-        Para implementar esta funcionalidade, as tarefas, ao encontrarem o comando **BARRIER**, deverão retornar da função executada pela pthread_create devolvendo um valor de retorno ad hoc (p.e., o valor 1) de forma a indicar que encontraram o comando **BARRIER** e que não acabaram de processar o ficheiro de comandos (nesse caso as tarefas deveriam devolver um valor de retorno diferente, p.e., 0).
-        A tarefa main, ou seja a tarefa que arranca as tarefas “trabalhadoras” usando pthread_create() deverá observar o valor de retorno devolvido pelas tarefas trabalhadoras usando pthread_join e, caso detecte que o comando **BARRIER** foi encontrado, arranca uma nova ronda de processamento paralelo que deverá retomar a seguir ao comando **BARRIER**.
-
-        Exemplos de utilização:
-            * **BARRIER**
-                * Todas as tarefas devem chegar a este ponto antes de prosseguirem com os seus próximos comandos.
+        * Todas as tarefas devem chegar a este ponto antes de prosseguirem com os seus próximos comandos.
 
 
 Este exercício deveria ser realizado idealmente a partir do código obtido após a resolução do exercício 2.
