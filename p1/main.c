@@ -12,14 +12,19 @@ int main(int argc, char *argv[]) {
 
   if (argc > 1) {
     char *endptr;
-    unsigned long int delay = strtoul(argv[1], &endptr, 10);
+    unsigned long int delay = strtoul(argv[1], &endptr, 10); // convert argv[1] to an unsigned long int corresponding to delay value
+    // strtoul() returns the first char in the input string that is not valid of conversion || returns '\0' if the whole input string was converted successfully
 
-    if (*endptr != '\0' || delay > UINT_MAX) {
-      fprintf(stderr, "Invalid delay value or value too large\n");
-      return 1;
+    if (*endptr != '\0') { // fail conversion, so argv[1] is a file
+      printf("we're going to do some file processing! :) \n");
     }
-
-    state_access_delay_ms = (unsigned int)delay;
+    else if (delay > UINT_MAX) { // successful conversion but returns invalid
+      fprintf(stderr, "Invalid delay value or value too large\n");
+      return 1; 
+    }
+    else { // successful conversion
+      state_access_delay_ms = (unsigned int)delay;
+    }
   }
 
   if (ems_init(state_access_delay_ms)) {
