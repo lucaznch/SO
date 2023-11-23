@@ -21,9 +21,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Failed to process file\n");
         return 1;
       }
-      else {
-        return 0;
-      }
+      else 
+        return 0; // files were processed!
     }
     else if (delay > UINT_MAX) { // successful conversion but returns invalid
       fprintf(stderr, "Invalid delay value or value too large\n");
