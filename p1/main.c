@@ -6,6 +6,7 @@
 #include "constants.h"
 #include "operations.h"
 #include "parser.h"
+#include "fileprocessing.h"
 
 int main(int argc, char *argv[]) {
   unsigned int state_access_delay_ms = STATE_ACCESS_DELAY_MS;
@@ -16,7 +17,13 @@ int main(int argc, char *argv[]) {
     // strtoul() returns the first char in the input string that is not valid of conversion || returns '\0' if the whole input string was converted successfully
 
     if (*endptr != '\0') { // fail conversion, so argv[1] is a file
-      printf("we're going to do some file processing! :) \n");
+      if (file_processing(argv[1])) {
+        fprintf(stderr, "Failed to process file\n");
+        return 1;
+      }
+      else {
+        return 0;
+      }
     }
     else if (delay > UINT_MAX) { // successful conversion but returns invalid
       fprintf(stderr, "Invalid delay value or value too large\n");
