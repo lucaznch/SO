@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
           continue;
         }
 
-        if (ems_show(event_id)) {
+        if (ems_show(STDOUT_FILENO, event_id)) {
           fprintf(stderr, "Failed to show event\n");
         }
 
