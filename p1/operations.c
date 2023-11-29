@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "eventlist.h"
+#include "constants.h"
 
 static struct EventList* event_list = NULL;
 static unsigned int state_access_delay_ms = 0;
@@ -64,6 +66,7 @@ int ems_terminate() {
   }
 
   free_list(event_list);
+  event_list = NULL; // for when processing files!
   return 0;
 }
 
@@ -156,7 +159,7 @@ int ems_reserve(unsigned int event_id, size_t num_seats, size_t* xs, size_t* ys)
   return 0;
 }
 
-int ems_show(unsigned int event_id) {
+int ems_show(int fd, unsigned int event_id) {
   if (event_list == NULL) {
     fprintf(stderr, "EMS state must be initialized\n");
     return 1;
@@ -172,14 +175,18 @@ int ems_show(unsigned int event_id) {
   for (size_t i = 1; i <= event->rows; i++) {
     for (size_t j = 1; j <= event->cols; j++) {
       unsigned int* seat = get_seat_with_delay(event, seat_index(event, i, j));
-      printf("%u", *seat);
+
+      char seat_value[MAX_SEAT];
+      int len = snprintf(seat_value, sizeof(seat_value), "%u", *seat);  // converts the int value of the seat into a str representation, stored in seat_value[]
+                                                                        // and returns the number of characters that were written
+      write(fd, seat_value, (size_t)len);
 
       if (j < event->cols) {
-        printf(" ");
+        write(fd, " ", 1);
       }
     }
 
-    printf("\n");
+    write(fd, "\n", 1);
   }
 
   return 0;
