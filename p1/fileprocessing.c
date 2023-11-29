@@ -82,7 +82,7 @@ int process_job_file(const char *file_path, int out_fd) {
                 break;
 
             case CMD_LIST_EVENTS:
-                if (ems_list_events()) {
+                if (ems_list_events(out_fd)) {
                     fprintf(stderr, "Failed to list events\n");
                 }
                 break;

@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
         break;
 
       case CMD_LIST_EVENTS:
-        if (ems_list_events()) {
+        if (ems_list_events(STDIN_FILENO)) {
           fprintf(stderr, "Failed to list events\n");
         }
 
