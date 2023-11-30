@@ -121,6 +121,7 @@ int process_job_file(const char *file_path, int out_fd) {
 
             case EOC:
                 ems_terminate();
+                close(fd);
                 return 0;
         }
     }
