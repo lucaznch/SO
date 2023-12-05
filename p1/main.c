@@ -21,7 +21,10 @@ int main(int argc, char *argv[]) {
     if (*endptr != '\0') { // fail conversion, so argv[1] is the "jobs" directory
 
       if (argc == 3) { // ./ems jobs/ MAX_PROC
-        // implement ex2 logic here
+        if (file_processing_with_processes(argv[1], state_access_delay_ms, atoi(argv[2]))) {
+          fprintf(stderr, "Failed to process file\n");
+          return 1;
+        }
       }
       else if (argc == 2) { // ./ems jobs/
         if (file_processing(argv[1], state_access_delay_ms)) {

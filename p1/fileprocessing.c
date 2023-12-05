@@ -7,7 +7,9 @@
 #include "parser.h"
 #include "constants.h"
 #include "operations.h"
+#include "fileprocessing.h"
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 
 int create_out_file(const char *file_path) { // file_path is sure to have a file with the ".jobs" extension
@@ -124,6 +126,11 @@ int process_job_file(const char *file_path, int out_fd) {
 
 
 
+
+
+
+
+
 int file_processing(const char *directory_path, unsigned int delay) {
     DIR *dir;
     struct dirent *entry;
@@ -165,6 +172,86 @@ int file_processing(const char *directory_path, unsigned int delay) {
 
             close(out_fd);
         }
+    }
+
+    ems_terminate(); // terminate the EMS state that was used by all ".jobs" files
+
+    closedir(dir);
+
+    return 0; 
+}
+
+
+
+
+int file_processing_with_processes(const char *directory_path, unsigned int delay, int max_proc) {
+    int processes_counter = 0; // counter to keep track of child processes
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir(directory_path);
+
+    if (dir == NULL) {
+        fprintf(stderr, "Failed to open directory: %s\n", directory_path);
+        return 1;
+    }
+
+    if (ems_init(delay)) { // initialize the EMS state that will be used by all ".jobs" files together (files are not related)
+        fprintf(stderr, "Failed to initialize EMS\n");
+        return 1;
+    }
+    
+    while ((entry = readdir(dir)) != NULL) { // go through all directory entries
+        
+        if (strstr((*entry).d_name, ".jobs") != NULL) { // if entry is a file with the ".jobs" extension
+            char path[MAX_FILENAME_LENGHT + 1];
+            int out_fd; // file descriptor of the corresponding ".out" file of the ".jobs" file
+            pid_t pid;
+
+            snprintf(path, sizeof(path), "%s/%s", directory_path, (*entry).d_name); // concatenate directory_path with file_name obtaining file_path
+            out_fd = create_out_file(path); // open the corresponding ".out"
+
+            if (out_fd == -1) {
+                fprintf(stderr, "Failed to create out file: %s\n", path);
+                close(out_fd);
+                closedir(dir);
+                return 1; 
+            }
+
+            pid = fork(); // fork a child process for each file, while the parent process continues to iterate over the remaing files
+
+            if (pid == -1) {
+                fprintf(stderr, "Failed to fork\n");
+                close(out_fd);
+                closedir(dir);
+                return 1;
+            }
+            else if (pid == 0) { // CHILD PROCESS CODE
+                if (process_job_file(path, out_fd)) {
+                    fprintf(stderr, "Failed to process file: %s\n", path);
+                    close(out_fd);
+                    closedir(dir);
+                    ems_terminate();
+                    exit(1); 
+                }
+                close(out_fd);
+                ems_terminate();
+                exit(0);
+            }
+            else { // PARENT PROCESS CODE
+                processes_counter++;
+                
+                if (processes_counter >= max_proc) {
+                    wait(NULL);
+                    processes_counter--;
+                }
+            }
+        }
+    }
+
+    while (processes_counter > 0) {
+        wait(NULL);
+        processes_counter--;
     }
 
     ems_terminate(); // terminate the EMS state that was used by all ".jobs" files

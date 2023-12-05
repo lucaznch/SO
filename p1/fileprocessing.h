@@ -18,4 +18,11 @@ int process_job_file(const char *file_path, int out_fd);
 /// @return 0 if the all files with the ".jobs" extension were processed successfully, 1 otherwise.
 int file_processing(const char *directory_path, unsigned int delay);
 
+/// Processes all files with the ".jobs" extension in the given directory, using multiple processes.
+/// @param directory_path Directory name.
+/// @param delay Delay.
+/// @param max_proc Maximum number of child processes. Use 0 to process files without processes.
+/// @return 0 if the all files with the ".jobs" extension were processed successfully, 1 otherwise.
+int file_processing_with_processes(const char *directory_path, unsigned int delay, int max_proc);
+
 #endif // FILE_PROCESSING
