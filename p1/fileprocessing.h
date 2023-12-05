@@ -14,7 +14,8 @@ int process_job_file(const char *file_path, int out_fd);
 
 /// Processes all files with the ".jobs" extension in the given directory.
 /// @param directory_path Directory name.
+/// @param delay Delay.
 /// @return 0 if the all files with the ".jobs" extension were processed successfully, 1 otherwise.
-int file_processing(const char *directory_path);
+int file_processing(const char *directory_path, unsigned int delay);
 
 #endif // FILE_PROCESSING

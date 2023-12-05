@@ -29,21 +29,14 @@ int create_out_file(const char *file_path) { // file_path is sure to have a file
 
 
 int process_job_file(const char *file_path, int out_fd) {
-    int fd;
-    
-    fd = open(file_path, O_RDONLY);
+    int fd = open(file_path, O_RDONLY);
 
     if (fd == -1) {
         fprintf(stderr, "Failed to open .jobs file: %s\n", file_path);
         return 1;
     }
 
-    if (ems_init(STATE_ACCESS_DELAY_MS)) {
-        fprintf(stderr, "Failed to initialize EMS\n");
-        return 1;
-    }
-
-    while (1) {
+    while (1) { // this loop goes line by line, using get_next(), of the ".jobs" file
         unsigned int event_id, delay;
         size_t num_rows, num_columns, num_coords;
         size_t xs[MAX_RESERVATION_SIZE], ys[MAX_RESERVATION_SIZE];
@@ -120,7 +113,6 @@ int process_job_file(const char *file_path, int out_fd) {
                 break;
 
             case EOC:
-                ems_terminate();
                 close(fd);
                 return 0;
         }
@@ -132,7 +124,7 @@ int process_job_file(const char *file_path, int out_fd) {
 
 
 
-int file_processing(const char *directory_path) {
+int file_processing(const char *directory_path, unsigned int delay) {
     DIR *dir;
     struct dirent *entry;
 
@@ -142,15 +134,20 @@ int file_processing(const char *directory_path) {
         fprintf(stderr, "Failed to open directory: %s\n", directory_path);
         return 1;
     }
+
+    if (ems_init(delay)) { // initialize the EMS state that will be used by all ".jobs" files together (files are not related)
+        fprintf(stderr, "Failed to initialize EMS\n");
+        return 1;
+    }
     
     while ((entry = readdir(dir)) != NULL) { // go through all directory entries
         
         if (strstr((*entry).d_name, ".jobs") != NULL) { // if entry is a file with the ".jobs" extension
             char path[MAX_FILENAME_LENGHT + 1];
-            int out_fd;
+            int out_fd; // file descriptor of the corresponding ".out" file of the ".jobs" file
 
             snprintf(path, sizeof(path), "%s/%s", directory_path, (*entry).d_name); // concatenate directory_path with file_name obtaining file_path
-            out_fd = create_out_file(path); // open the corresponding ".out" file to write on
+            out_fd = create_out_file(path); // open the corresponding ".out"
 
             if (out_fd == -1) {
                 fprintf(stderr, "Failed to create out file: %s\n", path);
@@ -169,6 +166,8 @@ int file_processing(const char *directory_path) {
             close(out_fd);
         }
     }
+
+    ems_terminate(); // terminate the EMS state that was used by all ".jobs" files
 
     closedir(dir);
 
