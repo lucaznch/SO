@@ -4,12 +4,13 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+
 #include "parser.h"
 #include "constants.h"
 #include "operations.h"
 #include "fileprocessing.h"
-#include <sys/stat.h>
-#include <sys/wait.h>
 
 
 int create_out_file(const char *file_path) { // file_path is sure to have a file with the ".jobs" extension
@@ -218,7 +219,12 @@ int file_processing_with_processes(const char *directory_path, unsigned int dela
                 return 1; 
             }
 
-            pid = fork(); // fork a child process for each file, while the parent process continues to iterate over the remaing files
+            /*
+            fork a child process for each file (respecting the maximum number of processes) while the parent process continues to iterate over the remaing files
+            both processes start executing after the fork() call
+            the child processes will get a copy of the heap with the data of EMS, and will process a file and store new data on the heap
+            */
+            pid = fork();
 
             if (pid == -1) {
                 fprintf(stderr, "Failed to fork\n");
@@ -239,9 +245,9 @@ int file_processing_with_processes(const char *directory_path, unsigned int dela
                 exit(0);
             }
             else { // PARENT PROCESS CODE
-                processes_counter++;
+                processes_counter++; // the parent process created a new child process
                 
-                if (processes_counter >= max_proc) {
+                if (processes_counter >= max_proc) { // if reached the maximum number of child processes, the parent will wait for any child to finish
                     wait(NULL);
                     processes_counter--;
                 }
@@ -249,6 +255,7 @@ int file_processing_with_processes(const char *directory_path, unsigned int dela
         }
     }
 
+    // before terminating the parent process, we make sure to wait for any remaining child processes to finish
     while (processes_counter > 0) {
         wait(NULL);
         processes_counter--;
