@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  fprintf(stderr, "Usage: %s <directory> <MAX_PROC> <MAX_THREADS> [delay]\n", argv[0]);
-  fprintf(stderr, "<directory>: Path to the 'jobs' directory\n<MAX_PROC>:  Maximum number of child processes\n<MAX_THREADS>: Maximum number of threads\n[delay]: delay (optional)\n");
+  fprintf(stderr, "Usage: %s <directory> <MAX_PROC> <MAX_THREADS> [<delay>]\n\n", argv[0]);
+  fprintf(stderr, "<directory>: Path to the 'jobs' directory\n<MAX_PROC>:  Maximum number of child processes\n<MAX_THREADS>: Maximum number of threads\n<delay>: delay\n");
   return 1;
 }

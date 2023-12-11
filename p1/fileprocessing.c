@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <pthread.h>
 
 #include "parser.h"
 #include "constants.h"
@@ -262,18 +263,143 @@ int file_processing_with_processes(const char *directory_path, int max_proc, uns
 
     closedir(dir);
 
-    return 0; 
+    return 0;
 }
 
 
 
 
 
-// int process_job_file_threads() {}
+
+
+
+
+
+
+
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+
+void *process_job_file_aux(void *arg) {
+    ThreadArgs *thread_args = (ThreadArgs *)arg;
+
+    pthread_mutex_lock(&mutex);
+
+    if (process_job_file((*thread_args).file_path, (*thread_args).out_fd))
+        fprintf(stderr, "Failed to process file: %s\n", (*thread_args).file_path);
+    
+    close((*thread_args).out_fd);
+
+    pthread_mutex_unlock(&mutex);
+
+    free(thread_args);
+    
+    return NULL;
+}
+
+
+
+
+// int process_job_file_with_threads(const char *file_path, int out_fd, int max_threads, int delayy) {}
+
+
 
 
 int file_processing_with_processes_and_threads(const char *directory_path, int max_proc, int max_threads, unsigned int delay) {
-    if (directory_path != NULL && max_proc != 0 && max_threads != 0 && delay != 0)
-        return 0;
-    return 1;
+    int processes_counter = 0; // counter to keep track of child processes
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir(directory_path);
+
+    if (dir == NULL) {
+        fprintf(stderr, "Failed to open directory: %s\n", directory_path);
+        return 1;
+    }
+
+    if (ems_init(delay)) { // initialize the EMS state that will be used by all ".jobs" files together (files are not related)
+        fprintf(stderr, "Failed to initialize EMS\n");
+        return 1;
+    }
+    
+    while ((entry = readdir(dir)) != NULL) { // go through all directory entries
+        
+        if (strstr((*entry).d_name, ".jobs") != NULL) { // if entry is a file with the ".jobs" extension
+            char path[MAX_FILENAME_LENGHT + 1];
+            int out_fd; // file descriptor of the corresponding ".out" file of the ".jobs" file
+            pid_t pid;
+
+            snprintf(path, sizeof(path), "%s/%s", directory_path, (*entry).d_name); // concatenate directory_path with file_name obtaining file_path
+            out_fd = create_out_file(path); // open the corresponding ".out"
+
+            if (out_fd == -1) {
+                fprintf(stderr, "Failed to create out file: %s\n", path);
+                close(out_fd);
+                closedir(dir);
+                return 1; 
+            }
+
+            /*
+            fork a child process for each file (respecting the maximum number of processes) while the parent process continues to iterate over the remaing files
+            both processes start executing after the fork() call
+            the child processes will get a copy of the heap with the data of EMS, and will process a file and store new data on the heap
+            */
+            pid = fork();
+
+            if (pid == -1) {
+                fprintf(stderr, "Failed to fork\n");
+                close(out_fd);
+                closedir(dir);
+                return 1;
+            }
+            else if (pid == 0) { // CHILD PROCESS CODE
+                int i;
+                pthread_t threads[max_threads];
+                ThreadArgs *thread_args;
+
+                for (i = 0; i < max_threads; i++) {
+                    thread_args = malloc(sizeof(ThreadArgs));
+                    (*thread_args).file_path = path;
+                    (*thread_args).out_fd = out_fd;
+
+                    if (pthread_create(&threads[i], NULL, process_job_file_aux, thread_args)) {
+                        fprintf(stderr, "Failed to create thread\n");
+                        close(out_fd);
+                        // closedir(dir);
+                        ems_terminate();
+                        exit(1);
+                    }
+                }
+
+                for (i = 0; i < max_threads; i++)
+                    pthread_join(threads[i], NULL);
+                
+                closedir(dir);
+                ems_terminate();
+                exit(0);
+            }
+            else { // PARENT PROCESS CODE
+                processes_counter++; // the parent process created a new child process
+                
+                if (processes_counter >= max_proc) { // if reached the maximum number of child processes, the parent will wait for any child to finish
+                    wait(NULL);
+                    processes_counter--;
+                }
+            }
+        }
+    }
+
+    // before terminating the parent process, we make sure to wait for any remaining child processes to finish
+    while (processes_counter > 0) {
+        wait(NULL);
+        processes_counter--;
+    }
+
+    ems_terminate(); // terminate the EMS state that was used by all ".jobs" files
+
+    closedir(dir);
+
+    return 0;
 }
