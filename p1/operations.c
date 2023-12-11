@@ -199,7 +199,7 @@ int ems_list_events(int fd) {
   }
 
   if (event_list->head == NULL) {
-    printf("No events\n");
+    write(fd, "No events\n", 10);
     return 0;
   }
 
