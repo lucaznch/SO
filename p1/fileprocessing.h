@@ -12,17 +12,33 @@ int create_out_file(const char *file_path);
 /// @return 0 if the specifc ".jobs" file was processed successfully, 1 otherwise.
 int process_job_file(const char *file_path, int out_fd);
 
-/// Processes all files with the ".jobs" extension in the given directory.
-/// @param directory_path Directory name.
+/// Processes all files with the ".jobs" extension in the given directory. Specific for exercise 1
+/// @param directory_path Directory path.
 /// @param delay Delay.
 /// @return 0 if the all files with the ".jobs" extension were processed successfully, 1 otherwise.
 int file_processing(const char *directory_path, unsigned int delay);
 
-/// Processes all files with the ".jobs" extension in the given directory, using multiple processes.
-/// @param directory_path Directory name.
+/// Processes all files with the ".jobs" extension in the given directory, using multiple processes. Specific for exercise 2
+/// @param directory_path Directory path.
+/// @param max_proc Maximum number of child processes.
 /// @param delay Delay.
-/// @param max_proc Maximum number of child processes. Use 0 to process files without processes.
 /// @return 0 if the all files with the ".jobs" extension were processed successfully, 1 otherwise.
-int file_processing_with_processes(const char *directory_path, unsigned int delay, int max_proc);
+int file_processing_with_processes(const char *directory_path, int max_proc, unsigned int delay);
+
+/// Processes all files with the ".jobs" extension in the given directory, using multithreaded programming. Specific for exercise 3
+/// @param directory_path Directory path.
+/// @param max_proc Maximum number of child processes.
+/// @param max_threads Maximum number of threads to process each file
+/// @param delay Delay.
+/// @return 0 if the all files with the ".jobs" extension were processed successfully, 1 otherwise.
+int file_processing_with_threads(const char *directory_path, int max_proc, int max_threads, unsigned int delay);
+
+/// Processes all files with the ".jobs" extension in the given directory, using multithreaded programming. Specific for exercise 3
+/// @param directory_path Directory path.
+/// @param max_proc Maximum number of child processes.
+/// @param max_threads Maximum number of threads to process each file
+/// @param delay Delay.
+/// @return 0 if the all files with the ".jobs" extension were processed successfully, 1 otherwise.
+int file_processing_with_processes_and_threads(const char *directory_path, int max_proc, int max_threads, unsigned int delay);
 
 #endif // FILE_PROCESSING

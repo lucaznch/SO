@@ -21,30 +21,27 @@ int main(int argc, char *argv[]) {
 
     if (*endptr != '\0') { // fail conversion, so argv[1] is the "jobs" directory
       
-      if (argc == 5) {
-        delay = strtoul(argv[4], &endptr, 10);
+      if (argc == 5 || argc == 4) {
+        if (argc == 5) {
+          delay = strtoul(argv[4], &endptr, 10);
 
-        if (delay > UINT_MAX) {
-          fprintf(stderr, "Invalid delay value or value too large\n");
-          return 1; 
-        }
-        else {
+          if (delay > UINT_MAX) {
+            fprintf(stderr, "Invalid delay value or value too large\n");
+            return 1; 
+          }
+
           state_access_delay_ms = (unsigned int)delay;
         }
-
-        // implement ex3 logic here with delay
-        printf("with delay: %u \n", state_access_delay_ms);
-        return 0;
-      }
-      
-      else if (argc == 4) {
-        // implement ex3 logic here
-        printf("no delayyyyyy !!!!\n");
+        
+        if (file_processing_with_processes_and_threads(argv[1], atoi(argv[2]), atoi(argv[3]), state_access_delay_ms)) {
+          fprintf(stderr, "Failed to process files\n");
+          return 1;
+        }
         return 0;
       }
 
       else if (argc == 3) {
-        if (file_processing_with_processes(argv[1], state_access_delay_ms, atoi(argv[2]))) {
+        if (file_processing_with_processes(argv[1], atoi(argv[2]), state_access_delay_ms)) {
           fprintf(stderr, "Failed to process file\n");
           return 1;
         }
@@ -60,8 +57,8 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  
-  printf(PROGRAM_EXEC_INSTRUCTIONS);
 
-  return 0;
+  fprintf(stderr, "Usage: %s <directory> <MAX_PROC> <MAX_THREADS> [delay]\n", argv[0]);
+  fprintf(stderr, "<directory>: Path to the 'jobs' directory\n<MAX_PROC>:  Maximum number of child processes\n<MAX_THREADS>: Maximum number of threads\n[delay]: delay (optional)\n");
+  return 1;
 }

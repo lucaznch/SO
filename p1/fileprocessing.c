@@ -13,6 +13,7 @@
 #include "fileprocessing.h"
 
 
+
 int create_out_file(const char *file_path) { // file_path is sure to have a file with the ".jobs" extension
 
     const char *lastDot = strrchr(file_path, '.'); // returns a pointer on the last occurrence of '.'
@@ -22,7 +23,8 @@ int create_out_file(const char *file_path) { // file_path is sure to have a file
     strncpy(out_filename, file_path, prefixLength); // copy the prefix (excluding the ".jobs" extension)
     strcpy(out_filename + prefixLength, ".out"); // add the new ".out" extension
 
-    int fd = open(out_filename, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    int fd = open(out_filename, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);   // open file to write only. if file does not exist it creates. if files exists it truncates.
+                                                                                    // file has read and write permissions
 
     free(out_filename);
 
@@ -127,11 +129,6 @@ int process_job_file(const char *file_path, int out_fd) {
 
 
 
-
-
-
-
-
 int file_processing(const char *directory_path, unsigned int delay) {
     DIR *dir;
     struct dirent *entry;
@@ -185,7 +182,7 @@ int file_processing(const char *directory_path, unsigned int delay) {
 
 
 
-int file_processing_with_processes(const char *directory_path, unsigned int delay, int max_proc) {
+int file_processing_with_processes(const char *directory_path, int max_proc, unsigned int delay) {
     int processes_counter = 0; // counter to keep track of child processes
     DIR *dir;
     struct dirent *entry;
@@ -266,4 +263,17 @@ int file_processing_with_processes(const char *directory_path, unsigned int dela
     closedir(dir);
 
     return 0; 
+}
+
+
+
+
+
+// int process_job_file_threads() {}
+
+
+int file_processing_with_processes_and_threads(const char *directory_path, int max_proc, int max_threads, unsigned int delay) {
+    if (directory_path != NULL && max_proc != 0 && max_threads != 0 && delay != 0)
+        return 0;
+    return 1;
 }
