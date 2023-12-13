@@ -8,6 +8,7 @@ typedef struct {
     int thread_id;              // 
     int max_threads;            //
     unsigned int delay;         //
+    int file_end;
 } ThreadArgs;
 
 /// Creates the correspoding ".out" file for the ".jobs" file.

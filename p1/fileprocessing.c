@@ -325,20 +325,33 @@ void *process_job_file_with_thread(void *arg) {
         size_t num_rows, num_columns, num_coords;
         size_t xs[MAX_RESERVATION_SIZE], ys[MAX_RESERVATION_SIZE];
 
+        printf("a\n");
+
         pthread_mutex_lock(&mutex);
 
-        while (current_thread_id != thread_id)
+        printf("b\n");
+
+
+        while (current_thread_id != thread_id) {
+            printf("Thread %d waiting. Current thread_id: %d, Expected thread_id: %d\n", thread_id, current_thread_id, thread_id);
             pthread_cond_wait(&condition, &mutex);
+        }
+
+        printf("c\n");
 
         command_type = get_next(fd);
+
         printf("(thread %d), line %d, has: %d\n",thread_id, file_lines, command_type);
 
         if (command_type == EOC) {
+            (*thread_args).file_end = 1;
+            current_thread_id = (current_thread_id + 1) % max_threads;
+            pthread_cond_broadcast(&condition);
             pthread_mutex_unlock(&mutex);
             close(fd);
+            printf("this will be last print till program gets stuck. Thread %d off\n", thread_id);
             pthread_exit(NULL);
         }
-
 
         if (file_lines % max_threads == thread_id) {
             printf("thread %d will execute line %d, with: %d\n", thread_id, file_lines, command_type);
@@ -408,12 +421,17 @@ void *process_job_file_with_thread(void *arg) {
                 // idk
             }
             else if (command_type == EOC) {
+                (*thread_args).file_end = 1;
+                current_thread_id = (current_thread_id + 1) % max_threads;
+                pthread_cond_broadcast(&condition);
                 pthread_mutex_unlock(&mutex);
                 close(fd);
+                printf("this will be last print till program gets stuck\n");
                 pthread_exit(NULL);
             }
 
             current_thread_id = (current_thread_id + 1) % max_threads;
+            printf("current thread id: %d\n", current_thread_id);
             pthread_cond_broadcast(&condition);
         
         }
@@ -433,20 +451,21 @@ void *process_job_file_with_thread(void *arg) {
 int file_processing_with_threads(const char *file_path, int out_fd, int max_threads, unsigned int delay) {
     int i;
     pthread_t threads[max_threads];
-    ThreadArgs thread_args;
-
-    thread_args.file_path = file_path;
-    thread_args.out_fd = out_fd;
-    thread_args.max_threads = max_threads;
-    thread_args.delay = delay;
+    ThreadArgs thread_args[max_threads];
 
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&condition, NULL);
 
     for (i = 0; i < max_threads; i++) {
-        thread_args.thread_id = i;
+        thread_args[i].file_path = file_path;
+        thread_args[i].out_fd = out_fd;
+        thread_args[i].max_threads = max_threads;
+        thread_args[i].delay = delay;
+        thread_args[i].thread_id = i;
+        thread_args[i].file_end = 0;
+
         printf("created thread %d for %s file\n", i, file_path);
-        pthread_create(&threads[i], NULL, process_job_file_with_thread, (void *)&thread_args);
+        pthread_create(&threads[i], NULL, process_job_file_with_thread, (void *)&thread_args[i]);
     }
 
     for (i = 0; i < max_threads; i++)
