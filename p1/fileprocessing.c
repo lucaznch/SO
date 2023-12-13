@@ -182,7 +182,6 @@ int file_processing(const char *directory_path, unsigned int delay) {
 
 
 
-
 int file_processing_with_processes(const char *directory_path, int max_proc, unsigned int delay) {
     int processes_counter = 0; // counter to keep track of child processes
     DIR *dir;
@@ -269,25 +268,11 @@ int file_processing_with_processes(const char *directory_path, int max_proc, uns
 
 
 
-
-
-
-
-
-
-
-
-
-
 pthread_mutex_t mutex;
 
 pthread_cond_t condition;
 
 int current_thread_id = 0;
-
-
-
-
 
 
 
@@ -304,6 +289,7 @@ void read_to_next_line(int fd) {
 
 void *process_job_file_with_thread(void *arg) {
     ThreadArgs *thread_args = (ThreadArgs *)arg;
+
     const char *file_path = (*thread_args).file_path;
     int out_fd = (*thread_args).out_fd;
     int thread_id = (*thread_args).thread_id;
@@ -311,14 +297,13 @@ void *process_job_file_with_thread(void *arg) {
     
     int fd = open(file_path, O_RDONLY);
 
-    int file_lines = 0;
+    int line_number = 0;
     int command_type;
 
     if (fd == -1) {
         fprintf(stderr, "Failed to open .jobs file: %s\n", file_path);
         pthread_exit(NULL);
     }
-
 
     while (1) { // this loop goes line by line, using get_next(), of the ".jobs" file
         unsigned int event_id, delay;
@@ -331,30 +316,39 @@ void *process_job_file_with_thread(void *arg) {
 
         printf("b\n");
 
-
-        while (current_thread_id != thread_id) {
+        while (current_thread_id != thread_id) { // wait for this thread turn to execute
             printf("Thread %d waiting. Current thread_id: %d, Expected thread_id: %d\n", thread_id, current_thread_id, thread_id);
             pthread_cond_wait(&condition, &mutex);
         }
 
         printf("c\n");
 
-        command_type = get_next(fd);
+        command_type = get_next(fd); // all threads read the command type of current the current line
 
-        printf("(thread %d), line %d, has: %d\n",thread_id, file_lines, command_type);
+        printf("(thread %d), line %d, has: %d\n",thread_id, line_number, command_type);
 
         if (command_type == EOC) {
-            (*thread_args).file_end = 1;
             current_thread_id = (current_thread_id + 1) % max_threads;
             pthread_cond_broadcast(&condition);
             pthread_mutex_unlock(&mutex);
             close(fd);
-            printf("this will be last print till program gets stuck. Thread %d off\n", thread_id);
+            printf("(1EOC)thread %d off\n", thread_id);
             pthread_exit(NULL);
         }
 
-        if (file_lines % max_threads == thread_id) {
-            printf("thread %d will execute line %d, with: %d\n", thread_id, file_lines, command_type);
+        /* 
+        each thread only executes specific lines. executed if (line_number % max_threads) == thread_id 
+        example:
+            10 lines (l0, l1, ..., l8 and l9) and 3 threads (t0, t1 and t2):
+                thread0 executes line0
+                thread1 executes line1
+                thread2 executes line2
+                thread0 executes line3
+                thread1 executes line4
+                ...
+        */
+        if (line_number % max_threads == thread_id) {
+            printf("thread %d will execute line %d, with: %d\n", thread_id, line_number, command_type);
 
             if (command_type == CMD_CREATE) {
                 if (parse_create(fd, &event_id, &num_rows, &num_columns) != 0) {
@@ -421,12 +415,11 @@ void *process_job_file_with_thread(void *arg) {
                 // idk
             }
             else if (command_type == EOC) {
-                (*thread_args).file_end = 1;
                 current_thread_id = (current_thread_id + 1) % max_threads;
                 pthread_cond_broadcast(&condition);
                 pthread_mutex_unlock(&mutex);
                 close(fd);
-                printf("this will be last print till program gets stuck\n");
+                printf("(2EOC)thread %d off\n", thread_id);
                 pthread_exit(NULL);
             }
 
@@ -436,10 +429,11 @@ void *process_job_file_with_thread(void *arg) {
         
         }
         else {
-            read_to_next_line(fd);
+            if (command_type != CMD_LIST_EVENTS) // list has no args so the line was already read (BARRIER HAS NO ARGS AS WELL)
+                read_to_next_line(fd);
         }
 
-        file_lines++;
+        line_number++;
 
         pthread_mutex_unlock(&mutex);
         
@@ -462,7 +456,6 @@ int file_processing_with_threads(const char *file_path, int out_fd, int max_thre
         thread_args[i].max_threads = max_threads;
         thread_args[i].delay = delay;
         thread_args[i].thread_id = i;
-        thread_args[i].file_end = 0;
 
         printf("created thread %d for %s file\n", i, file_path);
         pthread_create(&threads[i], NULL, process_job_file_with_thread, (void *)&thread_args[i]);
@@ -476,7 +469,6 @@ int file_processing_with_threads(const char *file_path, int out_fd, int max_thre
 
     return 0;
 }
-
 
 
 
