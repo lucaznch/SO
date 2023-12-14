@@ -306,7 +306,7 @@ void *process_job_file_with_thread(void *arg) {
     }
 
     while (1) { // this loop goes line by line, using get_next(), of the ".jobs" file
-        unsigned int event_id, delay;
+        unsigned int event_id, delay, wait_thread_id;
         size_t num_rows, num_columns, num_coords;
         size_t xs[MAX_RESERVATION_SIZE], ys[MAX_RESERVATION_SIZE];
 
@@ -323,7 +323,9 @@ void *process_job_file_with_thread(void *arg) {
 
         printf("c\n");
 
-        command_type = get_next(fd); // all threads read the command type of current the current line
+        command_type = get_next(fd);    // all threads read the command type of the current line
+                                        // only one thread executes the command of the line, with one exception!
+                                        // if the command type is EOC, then all threads read it and execute it
 
         printf("(thread %d), line %d, has: %d\n",thread_id, line_number, command_type);
 
@@ -337,7 +339,8 @@ void *process_job_file_with_thread(void *arg) {
         }
 
         /* 
-        each thread only executes specific lines. executed if (line_number % max_threads) == thread_id 
+        each thread only executes specific lines
+        line is executed if (line_number % max_threads) == thread_id 
         example:
             10 lines (l0, l1, ..., l8 and l9) and 3 threads (t0, t1 and t2):
                 thread0 executes line0
@@ -385,15 +388,26 @@ void *process_job_file_with_thread(void *arg) {
                 }
             } 
             else if (command_type == CMD_WAIT) {
-                if (parse_wait(fd, &delay, NULL) == -1) {
+                int wait_result = parse_wait(fd, &delay, &wait_thread_id);
+
+                if (wait_result == -1) {
                     fprintf(stderr, "Wait: Invalid command. See HELP for usage\n");
                     continue;
                 }
                 if (delay > 0) {
-                    printf("Waiting...\n");
-                    ems_wait(delay);
+                    if (wait_result == 1 && (int)wait_thread_id == thread_id) { // if WAIT command came with delay and thread_id
+                        printf("Waiting...\n");
+                        ems_wait(delay);
+                    }
+                    else if (wait_result == 1 && (int)wait_thread_id != thread_id) {
+                        //idk
+                    }
+                    else { // if WAIT command came with delay
+                        printf("Waiting...\n");
+                        ems_wait(delay);
+                    }
                 }
-            } 
+            }
             else if (command_type == CMD_INVALID) {
                 fprintf(stderr, "Invalid: Invalid command. See HELP for usage\n");
             } 
@@ -409,18 +423,10 @@ void *process_job_file_with_thread(void *arg) {
                     "  HELP\n");
             } 
             else if (command_type == CMD_BARRIER) {
-                // No action needed for these commands
+                // IMPLEMENT HERE!
             }
             else if (command_type == CMD_EMPTY) {
-                // idk
-            }
-            else if (command_type == EOC) {
-                current_thread_id = (current_thread_id + 1) % max_threads;
-                pthread_cond_broadcast(&condition);
-                pthread_mutex_unlock(&mutex);
-                close(fd);
-                printf("(2EOC)thread %d off\n", thread_id);
-                pthread_exit(NULL);
+                // do nothing
             }
 
             current_thread_id = (current_thread_id + 1) % max_threads;
@@ -429,7 +435,9 @@ void *process_job_file_with_thread(void *arg) {
         
         }
         else {
-            if (command_type != CMD_LIST_EVENTS) // list has no args so the line was already read (BARRIER HAS NO ARGS AS WELL)
+            // if thread does not execute the command of the line, then we read the remainder of line because get_next() only reads the command and not the whole line
+            // with the exception of LIST and BARRIER commands, have no args so the line was already read
+            if (command_type != CMD_LIST_EVENTS && command_type != CMD_BARRIER && command_type != CMD_EMPTY)
                 read_to_next_line(fd);
         }
 
@@ -437,7 +445,7 @@ void *process_job_file_with_thread(void *arg) {
 
         pthread_mutex_unlock(&mutex);
         
-    } 
+    }
 }
 
 
