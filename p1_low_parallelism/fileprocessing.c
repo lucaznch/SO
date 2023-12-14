@@ -334,6 +334,24 @@ void *process_job_file_with_thread(void *arg) {
             printf("(1EOC)thread %d off\n", thread_id);
             pthread_exit(NULL);
         }
+        else if (command_type == CMD_WAIT) {
+            int wait_result = parse_wait(fd, &delay, &wait_thread_id);
+
+            if (wait_result == -1) {
+                fprintf(stderr, "Wait: Invalid command. See HELP for usage\n");
+                continue;
+            }
+            if (delay > 0) {
+                if (wait_result == 1 && (int)wait_thread_id == thread_id) { // WAIT arguments: delay and thread_id
+                    printf("Waiting...\n");
+                    ems_wait(delay);
+                }
+                else if (wait_result == 0) { // WAIT arguments: delay
+                    printf("Waiting...\n");
+                    ems_wait(delay);
+                }
+            }
+        }
 
         /* 
         each thread only executes specific lines
@@ -384,27 +402,6 @@ void *process_job_file_with_thread(void *arg) {
                     fprintf(stderr, "Failed to list events\n");
                 }
             } 
-            else if (command_type == CMD_WAIT) {
-                int wait_result = parse_wait(fd, &delay, &wait_thread_id);
-
-                if (wait_result == -1) {
-                    fprintf(stderr, "Wait: Invalid command. See HELP for usage\n");
-                    continue;
-                }
-                if (delay > 0) {
-                    if (wait_result == 1 && (int)wait_thread_id == thread_id) { // WAIT arguments: delay and thread_id
-                        printf("Waiting...\n");
-                        ems_wait(delay);
-                    }
-                    else if (wait_result == 1 && (int)wait_thread_id != thread_id) {
-                        //idk
-                    }
-                    else { // WAIT arguments: delay
-                        printf("Waiting...\n");
-                        ems_wait(delay);
-                    }
-                }
-            }
             else if (command_type == CMD_INVALID) {
                 fprintf(stderr, "Invalid: Invalid command. See HELP for usage\n");
             } 
@@ -428,7 +425,7 @@ void *process_job_file_with_thread(void *arg) {
         else {
             // if thread does not execute the command of the line, then we read the remainder of line because get_next() only reads the command and not the whole line
             // with the exception of LIST and BARRIER commands, that have no args so the line was already read
-            if (command_type != CMD_LIST_EVENTS && command_type != CMD_BARRIER && command_type != CMD_EMPTY)
+            if (command_type != CMD_LIST_EVENTS && command_type != CMD_BARRIER && command_type != CMD_EMPTY && command_type != CMD_WAIT)
                 read_to_next_line(fd);
         }
 
