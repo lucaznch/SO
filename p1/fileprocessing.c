@@ -503,9 +503,6 @@ int file_processing_with_processes_and_threads(const char *directory_path, int m
         fprintf(stderr, "Failed to initialize EMS\n");
         return 1;
     }
-
-    //pthread_mutex_init(&mutex, NULL);
-    //pthread_cond_init(&condition, NULL);
     
     while ((entry = readdir(dir)) != NULL) { // go through all directory entries
         
