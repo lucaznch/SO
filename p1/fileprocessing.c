@@ -281,8 +281,6 @@ int file_processing_with_processes(const char *directory_path, int max_proc, uns
 
 pthread_mutex_t mutex;
 
-pthread_cond_t condition;
-
 int current_thread_id = 0;
 
 
@@ -311,22 +309,22 @@ void *process_job_file_with_thread(void *arg) {
     int line_number = 0;
     int command_type;
 
+    unsigned int event_id, delay, wait_thread_id;
+    size_t num_rows, num_columns, num_coords;
+    size_t xs[MAX_RESERVATION_SIZE], ys[MAX_RESERVATION_SIZE];
+
+
+
     if (fd == -1) {
         fprintf(stderr, "Failed to open .jobs file: %s\n", file_path);
         pthread_exit(NULL);
     }
 
     while (1) { // this loop goes line by line, using get_next(), of the ".jobs" file
-        unsigned int event_id, delay, wait_thread_id;
-        size_t num_rows, num_columns, num_coords;
-        size_t xs[MAX_RESERVATION_SIZE], ys[MAX_RESERVATION_SIZE];
 
-        pthread_mutex_lock(&mutex);
 
-        while (current_thread_id != thread_id) { // wait for this thread turn to execute
-            printf("Thread %d waiting. Current thread_id: %d, Expected thread_id: %d\n", thread_id, current_thread_id, thread_id);
-            pthread_cond_wait(&condition, &mutex);
-        }
+        //pthread_mutex_lock(&mutex);
+
 
         command_type = get_next(fd);    // all threads read the command type of the current line
                                         // only one thread executes the command of the line, with one exception!
@@ -334,28 +332,24 @@ void *process_job_file_with_thread(void *arg) {
 
         printf("(thread %d), line %d, has: %d\n",thread_id, line_number, command_type);
 
+
+
         if (command_type == EOC) {
             current_thread_id = (current_thread_id + 1) % max_threads;
-            pthread_cond_broadcast(&condition);
             pthread_mutex_unlock(&mutex);
             close(fd);
             printf("(1EOC)thread %d off\n", thread_id);
             pthread_exit(NULL);
         }
 
-        /* 
-        each thread only executes specific lines
-        line is executed if (line_number % max_threads) == thread_id 
-        example:
-            10 lines (l0, l1, ..., l8 and l9) and 3 threads (t0, t1 and t2):
-                thread0 executes line0
-                thread1 executes line1
-                thread2 executes line2
-                thread0 executes line3
-                thread1 executes line4
-                ...
-        */
-        if (line_number % max_threads == thread_id) {
+        else if (command_type == CMD_BARRIER) {
+
+        }
+
+        else if (command_type == CMD_WAIT) {
+        }
+
+        else if (line_number % max_threads == thread_id) {
             printf("thread %d will execute line %d, with: %d\n", thread_id, line_number, command_type);
 
             if (command_type == CMD_CREATE) {
@@ -417,20 +411,10 @@ void *process_job_file_with_thread(void *arg) {
                 fprintf(stderr, "Invalid: Invalid command. See HELP for usage\n");
             } 
             else if (command_type == CMD_HELP) {
-                printf(
-                    "Available commands:\n"
-                    "  CREATE <event_id> <num_rows> <num_columns>\n"
-                    "  RESERVE <event_id> [(<x1>,<y1>) (<x2>,<y2>) ...]\n"
-                    "  SHOW <event_id>\n"
-                    "  LIST\n"
-                    "  WAIT <delay_ms> [thread_id]\n"
-                    "  BARRIER\n"
-                    "  HELP\n");
+                printf(HELP);
             } 
             else if (command_type == CMD_BARRIER) {
-                // we don't need to implement this command, because there is order in executing each line
-                // the program already enforces a form of barrier due to the sequential nature of command execution by individual threads
-                // whenever a line gets executed, no line in front has been executed
+                // to be implemented!
             }
             else if (command_type == CMD_EMPTY) {
                 // do nothing
@@ -438,7 +422,6 @@ void *process_job_file_with_thread(void *arg) {
 
             current_thread_id = (current_thread_id + 1) % max_threads;
             printf("current thread id: %d\n", current_thread_id);
-            pthread_cond_broadcast(&condition);
         
         }
         else {
@@ -448,10 +431,7 @@ void *process_job_file_with_thread(void *arg) {
                 read_to_next_line(fd);
         }
 
-        line_number++;
-
-        pthread_mutex_unlock(&mutex);
-        
+        line_number++;        
     }
 }
 
@@ -463,7 +443,6 @@ int file_processing_with_threads(const char *file_path, int out_fd, int max_thre
     ThreadArgs thread_args[max_threads];
 
     pthread_mutex_init(&mutex, NULL);
-    pthread_cond_init(&condition, NULL);
 
     for (i = 0; i < max_threads; i++) {
         thread_args[i].file_path = file_path;
@@ -479,7 +458,6 @@ int file_processing_with_threads(const char *file_path, int out_fd, int max_thre
     for (i = 0; i < max_threads; i++)
         pthread_join(threads[i], NULL);
 
-    pthread_cond_destroy(&condition);
     pthread_mutex_destroy(&mutex);
 
     return 0;
@@ -577,7 +555,6 @@ int file_processing_with_processes_and_threads(const char *directory_path, int m
     ems_terminate(); // terminate the EMS state that was used by all ".jobs" files
 
     pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&condition);
 
     closedir(dir);
 
