@@ -50,7 +50,7 @@ int process_job_file(const char *file_path, int out_fd) {
         switch (get_next(fd)) {
             case CMD_CREATE:
                 if (parse_create(fd, &event_id, &num_rows, &num_columns) != 0) {
-                    fprintf(stderr, "Invalid command. See HELP for usage\n");
+                    fprintf(stderr, "Create: Invalid command. See HELP for usage\n");
                     continue;
                 }
                 if (ems_create(event_id, num_rows, num_columns)) {
@@ -62,7 +62,7 @@ int process_job_file(const char *file_path, int out_fd) {
                 num_coords = parse_reserve(fd, MAX_RESERVATION_SIZE, &event_id, xs, ys);
 
                 if (num_coords == 0) {
-                    fprintf(stderr, "Invalid command. See HELP for usage\n");
+                    fprintf(stderr, "Reserve: Invalid command. See HELP for usage\n");
                     continue;
                 }
                 if (ems_reserve(event_id, num_coords, xs, ys)) {
@@ -72,7 +72,7 @@ int process_job_file(const char *file_path, int out_fd) {
 
             case CMD_SHOW:
                 if (parse_show(fd, &event_id) != 0) {
-                    fprintf(stderr, "Invalid command. See HELP for usage\n");
+                    fprintf(stderr, "Show: Invalid command. See HELP for usage\n");
                     continue;
                 }
                 if (ems_show(out_fd, event_id)) {
@@ -88,7 +88,7 @@ int process_job_file(const char *file_path, int out_fd) {
             
             case CMD_WAIT:
                 if (parse_wait(fd, &delay, NULL) == -1) {  // thread_id is not implemented
-                    fprintf(stderr, "Invalid command. See HELP for usage\n");
+                    fprintf(stderr, "Wait: Invalid command. See HELP for usage\n");
                     continue;
                 }
                 if (delay > 0) {
@@ -98,7 +98,7 @@ int process_job_file(const char *file_path, int out_fd) {
                 break;
 
             case CMD_INVALID:
-                fprintf(stderr, "Invalid command. See HELP for usage\n");
+                fprintf(stderr, "Invalid: Invalid command. See HELP for usage\n");
                 break;
 
             case CMD_HELP:
@@ -245,8 +245,19 @@ int file_processing_with_processes(const char *directory_path, int max_proc, uns
                 processes_counter++; // the parent process created a new child process
                 
                 if (processes_counter >= max_proc) { // if reached the maximum number of child processes, the parent will wait for any child to finish
-                    wait(NULL);
+                    int status;
+                    pid_t terminated_pid = wait(&status);
+
                     processes_counter--;
+
+                    if (terminated_pid == -1)
+                        perror("Error waiting for child process");
+                    else {
+                        if (WIFEXITED(status))
+                            printf("Child process %d terminated normally with exit status %d\n", terminated_pid, WEXITSTATUS(status));
+                        else if (WIFSIGNALED(status))
+                            printf("Child process %d terminated by signal %d\n", terminated_pid, WTERMSIG(status));
+                    }
                 }
             }
         }
@@ -542,8 +553,19 @@ int file_processing_with_processes_and_threads(const char *directory_path, int m
                 processes_counter++; // the parent process created a new child process
                 
                 if (processes_counter >= max_proc) { // if reached the maximum number of child processes, the parent will wait for any child to finish
-                    wait(NULL);
+                    int status;
+                    pid_t terminated_pid = wait(&status);
+
                     processes_counter--;
+
+                    if (terminated_pid == -1)
+                        perror("Error waiting for child process");
+                    else {
+                        if (WIFEXITED(status))
+                            printf("Child process %d terminated normally with exit status %d\n", terminated_pid, WEXITSTATUS(status));
+                        else if (WIFSIGNALED(status))
+                            printf("Child process %d terminated by signal %d\n", terminated_pid, WTERMSIG(status));
+                    }
                 }
             }
         }
