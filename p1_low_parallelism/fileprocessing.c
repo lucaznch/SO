@@ -102,15 +102,7 @@ int process_job_file(const char *file_path, int out_fd) {
                 break;
 
             case CMD_HELP:
-                printf(
-                    "Available commands:\n"
-                    "  CREATE <event_id> <num_rows> <num_columns>\n"
-                    "  RESERVE <event_id> [(<x1>,<y1>) (<x2>,<y2>) ...]\n"
-                    "  SHOW <event_id>\n"
-                    "  LIST\n"
-                    "  WAIT <delay_ms> [thread_id]\n"  // thread_id is not implemented
-                    "  BARRIER\n"                      // Not implemented
-                    "  HELP\n");
+                printf(HELP);
                 break;
 
             case CMD_BARRIER:  // Not implemented
@@ -417,15 +409,7 @@ void *process_job_file_with_thread(void *arg) {
                 fprintf(stderr, "Invalid: Invalid command. See HELP for usage\n");
             } 
             else if (command_type == CMD_HELP) {
-                printf(
-                    "Available commands:\n"
-                    "  CREATE <event_id> <num_rows> <num_columns>\n"
-                    "  RESERVE <event_id> [(<x1>,<y1>) (<x2>,<y2>) ...]\n"
-                    "  SHOW <event_id>\n"
-                    "  LIST\n"
-                    "  WAIT <delay_ms> [thread_id]\n"
-                    "  BARRIER\n"
-                    "  HELP\n");
+                printf(HELP);
             } 
             else if (command_type == CMD_BARRIER) {
                 // we don't need to implement this command, because there is order in executing each line
