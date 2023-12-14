@@ -310,18 +310,12 @@ void *process_job_file_with_thread(void *arg) {
         size_t num_rows, num_columns, num_coords;
         size_t xs[MAX_RESERVATION_SIZE], ys[MAX_RESERVATION_SIZE];
 
-        printf("a\n");
-
         pthread_mutex_lock(&mutex);
-
-        printf("b\n");
 
         while (current_thread_id != thread_id) { // wait for this thread turn to execute
             printf("Thread %d waiting. Current thread_id: %d, Expected thread_id: %d\n", thread_id, current_thread_id, thread_id);
             pthread_cond_wait(&condition, &mutex);
         }
-
-        printf("c\n");
 
         command_type = get_next(fd);    // all threads read the command type of the current line
                                         // only one thread executes the command of the line, with one exception!
@@ -395,14 +389,14 @@ void *process_job_file_with_thread(void *arg) {
                     continue;
                 }
                 if (delay > 0) {
-                    if (wait_result == 1 && (int)wait_thread_id == thread_id) { // if WAIT command came with delay and thread_id
+                    if (wait_result == 1 && (int)wait_thread_id == thread_id) { // WAIT arguments: delay and thread_id
                         printf("Waiting...\n");
                         ems_wait(delay);
                     }
                     else if (wait_result == 1 && (int)wait_thread_id != thread_id) {
                         //idk
                     }
-                    else { // if WAIT command came with delay
+                    else { // WAIT arguments: delay
                         printf("Waiting...\n");
                         ems_wait(delay);
                     }
@@ -423,7 +417,9 @@ void *process_job_file_with_thread(void *arg) {
                     "  HELP\n");
             } 
             else if (command_type == CMD_BARRIER) {
-                // IMPLEMENT HERE!
+                // we don't need to implement this command, because there is order in executing each line
+                // the program already enforces a form of barrier due to the sequential nature of command execution by individual threads
+                // whenever a line gets executed, no line in front has been executed
             }
             else if (command_type == CMD_EMPTY) {
                 // do nothing
@@ -436,7 +432,7 @@ void *process_job_file_with_thread(void *arg) {
         }
         else {
             // if thread does not execute the command of the line, then we read the remainder of line because get_next() only reads the command and not the whole line
-            // with the exception of LIST and BARRIER commands, have no args so the line was already read
+            // with the exception of LIST and BARRIER commands, that have no args so the line was already read
             if (command_type != CMD_LIST_EVENTS && command_type != CMD_BARRIER && command_type != CMD_EMPTY)
                 read_to_next_line(fd);
         }
