@@ -206,7 +206,7 @@ int ems_list_events(int fd) {
   struct ListNode* current = event_list->head;
   while (current != NULL) {
     char id_value[MAX_ID];
-    int len = snprintf(id_value, sizeof(id_value), "%u\n", (current->event)->id); // converts the int value of the seat into a str representation, stored in seat_value[]
+    int len = snprintf(id_value, sizeof(id_value), "%u\n", (current->event)->id); // converts the int value of the seat into a str representation, stored in id_value[]
                                                                                   // and returns the number of characters that were written
     
     write(fd, "Event: ", sizeof("Event: ") - 1);
