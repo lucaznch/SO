@@ -281,7 +281,9 @@ int file_processing_with_processes(const char *directory_path, int max_proc, uns
 
 pthread_mutex_t mutex;
 
-int current_thread_id = 0;
+pthread_cond_t barrier_condition;
+
+int barrier_count = 0;
 
 
 
@@ -322,10 +324,6 @@ void *process_job_file_with_thread(void *arg) {
 
     while (1) { // this loop goes line by line, using get_next(), of the ".jobs" file
 
-
-        //pthread_mutex_lock(&mutex);
-
-
         command_type = get_next(fd);    // all threads read the command type of the current line
                                         // only one thread executes the command of the line, with one exception!
                                         // if the command type is EOC, then all threads read it and execute it
@@ -333,20 +331,46 @@ void *process_job_file_with_thread(void *arg) {
         printf("(thread %d), line %d, has: %d\n",thread_id, line_number, command_type);
 
 
-
         if (command_type == EOC) {
-            current_thread_id = (current_thread_id + 1) % max_threads;
-            pthread_mutex_unlock(&mutex);
             close(fd);
-            printf("(1EOC)thread %d off\n", thread_id);
+            printf("(EOC) thread %d off\n", thread_id);
             pthread_exit(NULL);
         }
 
         else if (command_type == CMD_BARRIER) {
+            printf("global commmand: thread %d will execute line %d, with: %d\n", thread_id, line_number, command_type);
+            pthread_mutex_lock(&mutex);
+            
+            barrier_count++;
 
+            if (barrier_count == max_threads) {
+                barrier_count = 0;
+                pthread_cond_broadcast(&barrier_condition);
+            }
+            else 
+                pthread_cond_wait(&barrier_condition, &mutex);
+            
+            pthread_mutex_unlock(&mutex);
         }
 
         else if (command_type == CMD_WAIT) {
+            printf("global commmand: thread %d will execute line %d, with: %d\n", thread_id, line_number, command_type);
+            int wait_result = parse_wait(fd, &delay, &wait_thread_id);
+
+            if (wait_result == -1) {
+                fprintf(stderr, "Wait: Invalid command. See HELP for usage\n");
+                continue;
+            }
+            if (delay > 0) {
+                if (wait_result == 1 && (int)wait_thread_id == thread_id) { // WAIT arguments: delay and thread_id
+                    printf("Waiting...\n");
+                    ems_wait(delay);
+                }
+                else if (wait_result == 0) { // WAIT arguments: delay
+                    printf("Waiting...\n");
+                    ems_wait(delay);
+                }
+            }
         }
 
         else if (line_number % max_threads == thread_id) {
@@ -357,9 +381,11 @@ void *process_job_file_with_thread(void *arg) {
                     fprintf(stderr, "Create: Invalid command. See HELP for usage\n");
                     continue;
                 }
+                pthread_mutex_lock(&mutex);
                 if (ems_create(event_id, num_rows, num_columns)) {
                     fprintf(stderr, "Failed to create event\n");
                 }
+                pthread_mutex_unlock(&mutex);
             } 
             else if (command_type == CMD_RESERVE) {
                 num_coords = parse_reserve(fd, MAX_RESERVATION_SIZE, &event_id, xs, ys);
@@ -368,66 +394,44 @@ void *process_job_file_with_thread(void *arg) {
                     fprintf(stderr, "Reserve: Invalid command. See HELP for usage\n");
                     continue;
                 }
+                pthread_mutex_lock(&mutex);
                 if (ems_reserve(event_id, num_coords, xs, ys)) {
                     fprintf(stderr, "Failed to reserve seats\n");
                 }
+                pthread_mutex_unlock(&mutex);
             } 
             else if (command_type == CMD_SHOW) {
                 if (parse_show(fd, &event_id) != 0) {
                     fprintf(stderr, "Show: Invalid command. See HELP for usage\n");
                     continue;
                 }
+                pthread_mutex_lock(&mutex);
                 if (ems_show(out_fd, event_id)) {
                     fprintf(stderr, "Failed to show event\n");
                 }
+                pthread_mutex_unlock(&mutex);
             } 
             else if (command_type == CMD_LIST_EVENTS) {
+                pthread_mutex_lock(&mutex);
                 if (ems_list_events(out_fd)) {
                     fprintf(stderr, "Failed to list events\n");
                 }
+                pthread_mutex_unlock(&mutex);
             } 
-            else if (command_type == CMD_WAIT) {
-                int wait_result = parse_wait(fd, &delay, &wait_thread_id);
-
-                if (wait_result == -1) {
-                    fprintf(stderr, "Wait: Invalid command. See HELP for usage\n");
-                    continue;
-                }
-                if (delay > 0) {
-                    if (wait_result == 1 && (int)wait_thread_id == thread_id) { // WAIT arguments: delay and thread_id
-                        printf("Waiting...\n");
-                        ems_wait(delay);
-                    }
-                    else if (wait_result == 1 && (int)wait_thread_id != thread_id) {
-                        //idk
-                    }
-                    else { // WAIT arguments: delay
-                        printf("Waiting...\n");
-                        ems_wait(delay);
-                    }
-                }
-            }
             else if (command_type == CMD_INVALID) {
                 fprintf(stderr, "Invalid: Invalid command. See HELP for usage\n");
             } 
             else if (command_type == CMD_HELP) {
                 printf(HELP);
             } 
-            else if (command_type == CMD_BARRIER) {
-                // to be implemented!
-            }
             else if (command_type == CMD_EMPTY) {
                 // do nothing
             }
-
-            current_thread_id = (current_thread_id + 1) % max_threads;
-            printf("current thread id: %d\n", current_thread_id);
-        
         }
         else {
             // if thread does not execute the command of the line, then we read the remainder of line because get_next() only reads the command and not the whole line
             // with the exception of LIST and BARRIER commands, that have no args so the line was already read
-            if (command_type != CMD_LIST_EVENTS && command_type != CMD_BARRIER && command_type != CMD_EMPTY)
+            if (command_type != CMD_LIST_EVENTS && command_type != CMD_BARRIER && command_type != CMD_EMPTY && command_type != CMD_WAIT)
                 read_to_next_line(fd);
         }
 
@@ -443,6 +447,7 @@ int file_processing_with_threads(const char *file_path, int out_fd, int max_thre
     ThreadArgs thread_args[max_threads];
 
     pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&barrier_condition, NULL);
 
     for (i = 0; i < max_threads; i++) {
         thread_args[i].file_path = file_path;
@@ -458,6 +463,7 @@ int file_processing_with_threads(const char *file_path, int out_fd, int max_thre
     for (i = 0; i < max_threads; i++)
         pthread_join(threads[i], NULL);
 
+    pthread_cond_destroy(&barrier_condition);
     pthread_mutex_destroy(&mutex);
 
     return 0;
