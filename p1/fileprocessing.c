@@ -279,6 +279,19 @@ int file_processing_with_processes(const char *directory_path, int max_proc, uns
 
 
 
+
+
+
+
+
+/*
+
+change implementation to have a mutex per event and not a global mutex!!!!
+
+*/
+
+
+
 pthread_mutex_t mutex;
 
 pthread_cond_t barrier_condition;
