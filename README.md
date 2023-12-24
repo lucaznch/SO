@@ -226,18 +226,18 @@ O conteúdo de cada mensagem (de pedido e resposta) deve seguir o seguinte forma
 
 | Função da API cliente | Mensagem de pedido | Mensagem de resposta |
 |:---:|:--- |:---:|
-| int ems_setup(char const *req_pipe_path, char const* resp_pipe_path, char const *server_pipe_path) | (char) OP_CODE=1 \| (char[40]) nome do pipe do cliente (para pedidos) \| (char[40]) nome do pipe do cliente (para
+| int ems_setup(char const *req_pipe_path, char const* resp_pipe_path, char const *server_pipe_path) | (char) OP_CODE=1 # (char[40]) nome do pipe do cliente (para pedidos) # (char[40]) nome do pipe do cliente (para
 respostas) | (int) session_id |
 | int ems_quit(void) | (char) OP_CODE=2 | <sem resposta> |
-| int ems_create(unsigned int event_id, size_t num_rows, size_t num_cols) | (char) OP_CODE=3 \| (unsigned int) event_id \| (size_t) num_rows \| (size_t) num_cols | (int) retorno (conforme código base) |
-| int ems_reserve(unsigned int event_id, size_t num_seats, size_t* xs, size_t* ys) | (char) OP_CODE=4 \| (unsigned int) event_id \| (size_t) num_seats \| (size_t[num_seats]) conteúdo de xs \| (size_t[num_seats]) conteúdo de ys | (int) retorno (conforme código base) |
-| int ems_show (int out_fd, unsigned int event_id) | (char) OP_CODE=5 \| (unsigned int) event_id | (int) retorno (conforme código base) \| (size_t) num_rows \| (size_t) num_cols \| (unsigned int[num_rows * num_cols]) seats |
-| int ems_list_events (int out_fd) | (char) OP_CODE=6 | (int) retorno (conforme código base) \| (size_t) num_events \| (unsigned int[num_events]) ids |
+| int ems_create(unsigned int event_id, size_t num_rows, size_t num_cols) | (char) OP_CODE=3 # (unsigned int) event_id # (size_t) num_rows # (size_t) num_cols | (int) retorno (conforme código base) |
+| int ems_reserve(unsigned int event_id, size_t num_seats, size_t* xs, size_t* ys) | (char) OP_CODE=4 # (unsigned int) event_id # (size_t) num_seats # (size_t[num_seats]) conteúdo de xs # (size_t[num_seats]) conteúdo de ys | (int) retorno (conforme código base) |
+| int ems_show (int out_fd, unsigned int event_id) | (char) OP_CODE=5 # (unsigned int) event_id | (int) retorno (conforme código base) # (size_t) num_rows # (size_t) num_cols # (unsigned int[num_rows * num_cols]) seats |
+| int ems_list_events (int out_fd) | (char) OP_CODE=6 | (int) retorno (conforme código base) # (size_t) num_events # (unsigned int[num_events]) ids |
 
 
 
 Onde:
-* O símbolo | denota a concatenação de elementos numa mensagem.
+* O símbolo **#** denota a concatenação de elementos numa mensagem.
 Por exemplo, a mensagem de pedido associada à função ems_quit consiste num byte (char) seguido de um inteiro (int).
 * Todas as mensagens de pedido são iniciadas por um código que identifica a operação solicitada (OP_CODE).
 Com a exceção dos pedidos de ems_setup, o OP_CODE é seguido do session_id da sessão atual do cliente (que deverá ter sido guardado numa variável do cliente aquando da chamada a ems_setup).
