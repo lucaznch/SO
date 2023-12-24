@@ -223,21 +223,57 @@ Diferentes programas cliente podem existir, todos eles invocando a API acima ind
 ### Protocolo de pedidos-respostas
 O conteúdo de cada mensagem (de pedido e resposta) deve seguir o seguinte formato:
 
+```
+Função da API cliente
+int ems_setup(char const *req_pipe_path, char const* resp_pipe_path, char const *server_pipe_path)
+Mensagens de pedido e resposta
+(char) OP_CODE=1 | (char[40]) nome do pipe do cliente (para pedidos) | (char[40]) nome do pipe do cliente (para respostas)
+(int) session_id
+```
 
-| Função da API cliente | Mensagem de pedido | Mensagem de resposta |
-|:---:|:--- |:---:|
-| int ems_setup(char const *req_pipe_path, char const* resp_pipe_path, char const *server_pipe_path) | (char) OP_CODE=1 # (char[40]) nome do pipe do cliente (para pedidos) # (char[40]) nome do pipe do cliente (para
-respostas) | (int) session_id |
-| int ems_quit(void) | (char) OP_CODE=2 | <sem resposta> |
-| int ems_create(unsigned int event_id, size_t num_rows, size_t num_cols) | (char) OP_CODE=3 # (unsigned int) event_id # (size_t) num_rows # (size_t) num_cols | (int) retorno (conforme código base) |
-| int ems_reserve(unsigned int event_id, size_t num_seats, size_t* xs, size_t* ys) | (char) OP_CODE=4 # (unsigned int) event_id # (size_t) num_seats # (size_t[num_seats]) conteúdo de xs # (size_t[num_seats]) conteúdo de ys | (int) retorno (conforme código base) |
-| int ems_show (int out_fd, unsigned int event_id) | (char) OP_CODE=5 # (unsigned int) event_id | (int) retorno (conforme código base) # (size_t) num_rows # (size_t) num_cols # (unsigned int[num_rows * num_cols]) seats |
-| int ems_list_events (int out_fd) | (char) OP_CODE=6 | (int) retorno (conforme código base) # (size_t) num_events # (unsigned int[num_events]) ids |
+```
+Função da API cliente
+int ems_quit(void)
+Mensagens de pedido e resposta
+(char) OP_CODE=2
+<sem resposta>
+```
 
+```
+Função da API cliente
+int ems_create(unsigned int event_id, size_t num_rows, size_t num_cols)
+Mensagens de pedido e resposta
+(char) OP_CODE=3 | (unsigned int) event_id | (size_t) num_rows | (size_t) num_cols
+(int) retorno (conforme código base)
+```
+
+```
+Função da API cliente
+int ems_reserve(unsigned int event_id, size_t num_seats, size_t* xs, size_t* ys)
+Mensagens de pedido e resposta
+(char) OP_CODE=4 | (unsigned int) event_id | (size_t) num_seats | (size_t[num_seats]) conteúdo de xs | (size_t[num_seats]) conteúdo de ys
+(int) retorno (conforme código base)
+```
+
+```
+Função da API cliente
+int ems_show (int out_fd, unsigned int event_id)
+Mensagens de pedido e resposta
+(char) OP_CODE=5 | (unsigned int) event_id
+(int) retorno (conforme código base) | (size_t) num_rows | (size_t) num_cols |  (unsigned int[num_rows * num_cols]) seats
+```
+
+```
+Função da API cliente
+int ems_list_events (int out_fd)
+Mensagens de pedido e resposta
+(char) OP_CODE=6
+(int) retorno (conforme código base) | (size_t) num_events | (unsigned int[num_events]) ids
+```
 
 
 Onde:
-* O símbolo **#** denota a concatenação de elementos numa mensagem.
+* O símbolo **|** denota a concatenação de elementos numa mensagem.
 Por exemplo, a mensagem de pedido associada à função ems_quit consiste num byte (char) seguido de um inteiro (int).
 * Todas as mensagens de pedido são iniciadas por um código que identifica a operação solicitada (OP_CODE).
 Com a exceção dos pedidos de ems_setup, o OP_CODE é seguido do session_id da sessão atual do cliente (que deverá ter sido guardado numa variável do cliente aquando da chamada a ems_setup).
@@ -245,3 +281,47 @@ Com a exceção dos pedidos de ems_setup, o OP_CODE é seguido do session_id da 
 No caso de nomes de tamanho inferior, os caracteres adicionais devem ser preenchidos com ‘\0’.
 * O buffer de lugares devolvido pelo ems_show deve seguir a ordem principal de linha (row-major order).
 * Em caso de erro no ems_show ou no ems_list_events, o servidor deve enviar apenas o código de erro.
+
+
+
+### Implementação em duas etapas
+Dada a complexidade deste requisito, recomenda-se que a solução seja desenvolvida de forma gradual, em 2 etapas que descrevemos de seguida.
+
+
+## Etapa 1.1: Servidor IST-EMS com sessão única
+Nesta fase, devem ser assumidas as seguintes simplificações (que serão eliminadas no próximo requisito):
+* O servidor é single-threaded.
+* O servidor só aceita uma sessão de cada vez (ou seja, S=1).
+
+> [!TIP]
+> Experimente:
+> Corra o teste disponibilizado em jobs/test.jobs sobre a sua implementação cliente-servidor do IST-EMS. Confirme que o teste termina com sucesso.
+> Construa e experimente testes mais elaborados que exploram diferentes funcionalidades oferecidas pelo servidor IST-EMS.
+
+
+
+## Etapa 1.2: Suporte a múltiplas sessões concorrentes
+
+Nesta etapa, a solução composta até ao momento deve ser estendida para suportar os seguintes aspetos mais avançados.
+Por um lado, o servidor deve passar a suportar múltiplas sessões ativas em simultâneo (ou seja, S>1).
+
+Por outro lado, o servidor deve ser capaz de tratar pedidos de sessões distintas (ou seja, de clientes distintos) em paralelo, usando múltiplas tarefas (pthreads), entre as quais:
+* A tarefa inicial do servidor deve ficar responsável por receber os pedidos que chegam ao servidor através do seu pipe, sendo por isso chamada a tarefa anfitrião.
+* Existem também S tarefas trabalhadoras, cada uma associada a um session_id e dedicada a servir os pedidos do cliente correspondente à esta sessão. As tarefas trabalhadoras devem ser criadas aquando da inicialização do servidor.
+
+A tarefa anfitrião coordena-se com as tarefas trabalhadoras da seguinte forma:
+* Quando a tarefa anfitrião recebe um pedido de estabelecimento de sessão por um cliente, a tarefa anfitrião insere o pedido num buffer produtor-consumidor. As tarefas trabalhadoras extraem pedidos deste buffer e comunicam com o respectivo cliente através dos named pipes que o cliente terá previamente criado e comunicado junto ao pedido de estabelecimento da sessão. A sincronização do buffer produtor-consumidor deve basear-se em variáveis de condição (além de mutexes).
+
+> [!TIP]
+> Experimente:
+> Experimente correr os testes cliente-servidor que compôs anteriormente, mas agora lançando-os concorrentemente por 2 ou mais processos cliente.
+
+## Exercício 2. Interação por sinais
+Estender o IST-EMS de forma que no servidor seja redefinida a rotina de tratamento do SIGUSR1.
+Ao receber este sinal o (servidor) IST-EMS deve memorizar que, o mais breve possível, mas fora da função de tratamento do sinal, a thread principal deverá imprimir no std-output o identificador de cada evento, seguido do estado dos seus lugares, tal como o SHOW do primeiro exercício.
+Dado que só a thread principal que recebe as ligações dos clientes deve escutar o SIGUSR1, todas as threads de atendimento de um cliente específico devem usar a função pthread_sigmask para inibirem (com a opção SIG_BLOCK) a recepção do SIGUSR1.
+
+**Ponto de partida.**
+Para resolver a 2ª parte do projeto, os grupos podem optar por usar como base a sua solução da 1ª parte do projeto ou aceder ao novo código base. Caso se opte por usar a solução da 1ª parte do projeto como ponto de partida, poder-se-á aproveitar a lógica de sincronização entre tarefas.
+Contudo, nesta fase do projeto o servidor do IST-EMS corre apenas num processo
+Portanto as extensões desenvolvidas na primeira fase do projeto para obter paralelização por múltiplos processos não poderão ser aproveitadas para esta parte do projeto.
