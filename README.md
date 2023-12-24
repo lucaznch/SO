@@ -195,7 +195,7 @@ De seguida apresentamos essa API.
 
 
 As seguintes operações permitem que o cliente estabeleça e termine uma sessão com o servidor:
-* **int ems_setup (char const *req_pipe_path, char const *resp_pipe_path, char const *server_pipe_path)**
+* __int ems_setup (char const *req_pipe_path, char const *resp_pipe_path, char const *server_pipe_path)__
     * Estabelece uma sessão usando os named pipes indicados em argumento. Os named pipes usados pela troca de pedidos e respostas (isto é, após o estabelecimento da sessão) devem ser criados (chamando mkfifo) usando os nomes passados no 1º e 2º argumento.
     O named pipe do servidor deve já estar previamente criado pelo servidor, e o correspondente nome é passado no 3º argumento.
     Em caso de sucesso, o session_id associado à nova sessão terá sido guardado numa variável do cliente que indica qual a sessão que o cliente tem ativa neste momento; adicionalmente, todos os pipes terão sido abertos pelo cliente.
@@ -207,7 +207,7 @@ As seguintes operações permitem que o cliente estabeleça e termine uma sessã
 
 Tendo uma sessão ativa, o cliente pode invocar as seguintes operações junto do servidor, cuja especificação é idêntica à das operações homónimas do servidor:
 * **int ems_create(unsigned int event_id, size_t num_rows, size_t num_cols)**
-* **int ems_reserve(unsigned int event_id, size_t num_seats, size_t* xs, size_t* ys)**
+* __int ems_reserve(unsigned int event_id, size_t num_seats, size_t* xs, size_t* ys)__
 * **int ems_show(int out_fd, unsigned int event_id)**
 * **int ems_list_events(int out_fd)**
     * Tanto o ems_show como o ems_list_events recebem um file descriptor para onde devem imprimir o seu output, com o mesmo formato da primeira parte do projeto.
@@ -218,7 +218,7 @@ Diferentes programas cliente podem existir, todos eles invocando a API acima ind
 * Os processos cliente são corretos, ou seja cumprem a especificação que é descrita no resto deste documento. Em particular, assume-se que nenhum cliente envia mensagens com formato fora do especificado.
 
 
-!(src/api.png)
+![api](src/api.png)
 
 ### Protocolo de pedidos-respostas
 O conteúdo de cada mensagem (de pedido e resposta) deve seguir o seguinte formato:
@@ -226,13 +226,13 @@ O conteúdo de cada mensagem (de pedido e resposta) deve seguir o seguinte forma
 
 | Função da API cliente | Mensagem de pedido | Mensagem de resposta |
 |:---:|:--- |:---:|
-| int ems_setup(char const *req_pipe_path, char const* resp_pipe_path, char const *server_pipe_path) | (char) OP_CODE=1 | (char[40]) nome do pipe do cliente (para pedidos) | (char[40]) nome do pipe do cliente (para
+| int ems_setup(char const *req_pipe_path, char const* resp_pipe_path, char const *server_pipe_path) | (char) OP_CODE=1 \| (char[40]) nome do pipe do cliente (para pedidos) \| (char[40]) nome do pipe do cliente (para
 respostas) | (int) session_id |
 | int ems_quit(void) | (char) OP_CODE=2 | <sem resposta> |
-| int ems_create(unsigned int event_id, size_t num_rows, size_t num_cols) | (char) OP_CODE=3 | (unsigned int) event_id | (size_t) num_rows | (size_t) num_cols | (int) retorno (conforme código base) |
-| int ems_reserve(unsigned int event_id, size_t num_seats, size_t* xs, size_t* ys) | (char) OP_CODE=4 | (unsigned int) event_id | (size_t) num_seats | (size_t[num_seats]) conteúdo de xs | (size_t[num_seats]) conteúdo de ys | (int) retorno (conforme código base) |
-| int ems_show (int out_fd, unsigned int event_id) | (char) OP_CODE=5 | (unsigned int) event_id | (int) retorno (conforme código base) | (size_t) num_rows | (size_t) num_cols | (unsigned int[num_rows * num_cols]) seats |
-| int ems_list_events (int out_fd) | (char) OP_CODE=6 | (int) retorno (conforme código base) | (size_t) num_events | (unsigned int[num_events]) ids |
+| int ems_create(unsigned int event_id, size_t num_rows, size_t num_cols) | (char) OP_CODE=3 \| (unsigned int) event_id \| (size_t) num_rows \| (size_t) num_cols | (int) retorno (conforme código base) |
+| int ems_reserve(unsigned int event_id, size_t num_seats, size_t* xs, size_t* ys) | (char) OP_CODE=4 \| (unsigned int) event_id \| (size_t) num_seats \| (size_t[num_seats]) conteúdo de xs \| (size_t[num_seats]) conteúdo de ys | (int) retorno (conforme código base) |
+| int ems_show (int out_fd, unsigned int event_id) | (char) OP_CODE=5 \| (unsigned int) event_id | (int) retorno (conforme código base) \| (size_t) num_rows \| (size_t) num_cols \| (unsigned int[num_rows * num_cols]) seats |
+| int ems_list_events (int out_fd) | (char) OP_CODE=6 | (int) retorno (conforme código base) \| (size_t) num_events \| (unsigned int[num_events]) ids |
 
 
 
