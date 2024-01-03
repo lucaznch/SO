@@ -14,10 +14,13 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  printf("setting up this client to server...\n");
   if (ems_setup(argv[1], argv[2], argv[3])) {
     fprintf(stderr, "Failed to set up EMS\n");
     return 1;
   }
+  printf("client set up\n");
+
 
   const char* dot = strrchr(argv[4], '.');
   if (dot == NULL || dot == argv[4] || strlen(dot) != 5 || strcmp(dot, ".jobs") ||
@@ -30,17 +33,23 @@ int main(int argc, char* argv[]) {
   strcpy(out_path, argv[4]);
   strcpy(strrchr(out_path, '.'), ".out");
 
+
+  printf("opening input file: %s\n", argv[4]);
   int in_fd = open(argv[4], O_RDONLY);
   if (in_fd == -1) {
     fprintf(stderr, "Failed to open input file. Path: %s\n", argv[4]);
     return 1;
   }
+  printf("input file opened for reading\n");
 
+
+  printf("opening output file: %s\n", out_path);
   int out_fd = open(out_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
   if (out_fd == -1) {
     fprintf(stderr, "Failed to open output file. Path: %s\n", out_path);
     return 1;
   }
+  printf("output file opened for writing\n");
 
   while (1) {
     unsigned int event_id;
@@ -60,7 +69,7 @@ int main(int argc, char* argv[]) {
 
       case CMD_RESERVE:
         num_coords = parse_reserve(in_fd, MAX_RESERVATION_SIZE, &event_id, xs, ys);
-
+        
         if (num_coords == 0) {
           fprintf(stderr, "Invalid command. See HELP for usage\n");
           continue;
