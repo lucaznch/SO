@@ -3,6 +3,10 @@
 
 #include <stddef.h>
 
+
+int get_num_rows(unsigned int event_id);
+int get_num_cols(unsigned int event_id);
+
 /// Initializes the EMS state.
 /// @param delay_us Delay in microseconds.
 /// @return 0 if the EMS state was initialized successfully, 1 otherwise.

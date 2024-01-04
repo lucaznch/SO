@@ -154,6 +154,12 @@ int main(int argc, char* argv[]) {
 
         printf("%d\n", event_id);
 
+        int num_rows = get_num_rows(event_id);
+        int num_cols = get_num_cols(event_id);
+
+        write(response_fifo, &num_rows, sizeof(int));
+        write(response_fifo, &num_cols, sizeof(int));
+
         // ems_show(ffdd, event_id);
       }
       else if (op == 6) {

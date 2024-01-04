@@ -31,6 +31,21 @@ static struct Event* get_event_with_delay(unsigned int event_id, struct ListNode
 /// @return Index of the seat.
 static size_t seat_index(struct Event* event, size_t row, size_t col) { return (row - 1) * event->cols + col - 1; }
 
+
+
+int get_num_rows(unsigned int event_id) {
+  struct Event* event = get_event(event_list, event_id, event_list->head, event_list->tail);
+
+  return (int)(*event).rows;
+}
+
+int get_num_cols(unsigned int event_id) {
+  struct Event* event = get_event(event_list, event_id, event_list->head, event_list->tail);
+
+  return (int)(*event).cols;
+}
+
+
 int ems_init(unsigned int delay_us) {
   if (event_list != NULL) {
     fprintf(stderr, "EMS state has already been initialized\n");

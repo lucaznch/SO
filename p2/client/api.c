@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "api.h"
 #include "common/constants.h"
@@ -18,6 +19,9 @@ int ems_setup(char const* req_pipe_path, char const* resp_pipe_path, char const*
 
   request_pipe_path = req_pipe_path;
   response_pipe_path = resp_pipe_path;
+
+  unlink(req_pipe_path);
+  unlink(resp_pipe_path);
 
   if (mkfifo(req_pipe_path, 0666)) {
     fprintf(stderr, "Failed to create request pipe\n");
@@ -180,6 +184,13 @@ int ems_show(int out_fd, unsigned int event_id) {
   offset += sizeof(unsigned int);
 
   write(request_fifo, buf, offset);
+
+  int num_rows, num_cols;
+
+  read(response_fifo, &num_rows, sizeof(int));
+  read(response_fifo, &num_cols, sizeof(int));
+
+  printf("THE MATRIX WILL HAVE %d ROWS AND %d COLS\n", num_rows, num_cols);
 
   return 0;
 }
