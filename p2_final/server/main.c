@@ -349,9 +349,6 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "Failed to open pipe\n");
     return 1;
   }
-
-  int slots[NUMBER_OF_SESSIONS]; // to know which slots are being used
-  memset(slots, 0, sizeof(slots)); // initializes the slots to 0
   
   pthread_t threads[NUMBER_OF_SESSIONS]; // to store the threads for each session
   session_info* buffer[NUMBER_OF_SESSIONS]; // to store the information of each session

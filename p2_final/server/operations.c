@@ -283,16 +283,6 @@ list_data ems_list_events() {
 }
 
 
-
-
-
-
-
-
-
-
-
-
 void ems_show_signal(int out_fd, unsigned int event_id) {
   if (event_list == NULL) {
     fprintf(stderr, "EMS state must be initialized\n");
@@ -347,9 +337,6 @@ void ems_show_signal(int out_fd, unsigned int event_id) {
 
   pthread_mutex_unlock(&event->mutex);
 }
-
-
-
 
 void ems_list_events_signal(int out_fd) {
   if (event_list == NULL) {

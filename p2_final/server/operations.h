@@ -48,7 +48,13 @@ show_data ems_show(unsigned int event_id);
 /// @return a list_data struct with the return code, the number of events and the events
 list_data ems_list_events();
 
+/// Prints all the events.
+/// @param out_fd File descriptor to print the events to.
 void ems_list_events_signal(int out_fd);
+
+/// Prints the given event.
+/// @param out_fd File descriptor to print the event to.
+/// @param event_id Id of the event to print.
 void ems_show_signal(int out_fd, unsigned int event_id);
 
 #endif  // SERVER_OPERATIONS_H
