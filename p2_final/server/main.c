@@ -33,14 +33,14 @@ typedef struct {
 
 
 
-volatile sig_atomic_t sigusr1_received = 0;
+volatile sig_atomic_t sigusr1_received = 0; // global variable used in the main thread, to indicate the signal status. It's the SIGUSR1 flag of the main thread
 pthread_mutex_t sigusr1_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 void sigusr1_handler(int s) {
-  (void)s;
-  sigusr1_received = 1;
-  signal(SIGUSR1, sigusr1_handler);
+  (void)s; // unused parameter
+  sigusr1_received = 1; // change the status to confirm there was a signal, and let the main thread deal with it outside this routine
+  signal(SIGUSR1, sigusr1_handler); // re-associate the SIGUSR1 signal to this routine
 }
 
 
@@ -51,10 +51,10 @@ void* individual_session(void* args) {
   common_arg* common_args = ((individual_session_args*)args)->common_args;
   session_info* current_session = NULL;
 
-  sigset_t mask;
-  sigemptyset(&mask);
-  sigaddset(&mask, SIGUSR1);
-  pthread_sigmask(SIG_BLOCK, &mask, NULL);
+  sigset_t mask; // represents a set of signals to block in this thread
+  sigemptyset(&mask); // initialize the set to an empty set
+  sigaddset(&mask, SIGUSR1); // add the SIGUSR1 signal to the set
+  pthread_sigmask(SIG_BLOCK, &mask, NULL); // block all the signals of the set, in this thread. Only SIGUSR1 will be blocked, since it's the only signal in the set
 
 
 
@@ -386,16 +386,16 @@ int main(int argc, char* argv[]) {
     pthread_create(&threads[i - 1], NULL, individual_session, args); // creates the thread
   }
 
-  signal(SIGUSR1, sigusr1_handler);
+  signal(SIGUSR1, sigusr1_handler); // associate the SIGUSR1 signal to be handled by sigusr1_handler() routine
 
   char op_code; // to store the type of operation
   ssize_t bytes_read; // to store the number of bytes read
   while (1) {
 
     pthread_mutex_lock(&sigusr1_mutex);
-    if (sigusr1_received) {
-      ems_list_events_signal(STDOUT_FILENO);
-      sigusr1_received = 0;
+    if (sigusr1_received) { // if there was a SIGUSR1 signal received
+      ems_list_events_signal(STDOUT_FILENO); // print in stdout a list of events IDs along with its seat status
+      sigusr1_received = 0; // reset signal flag
     }
     pthread_mutex_unlock(&sigusr1_mutex);  
 
