@@ -40,6 +40,7 @@ pthread_mutex_t sigusr1_mutex = PTHREAD_MUTEX_INITIALIZER;
 void sigusr1_handler(int s) {
   (void)s;
   sigusr1_received = 1;
+  signal(SIGUSR1, sigusr1_handler);
 }
 
 
@@ -391,13 +392,12 @@ int main(int argc, char* argv[]) {
   ssize_t bytes_read; // to store the number of bytes read
   while (1) {
 
-  pthread_mutex_lock(&sigusr1_mutex);
-  if (sigusr1_received) {
-      // Process events and print information
+    pthread_mutex_lock(&sigusr1_mutex);
+    if (sigusr1_received) {
       ems_list_events_signal(STDOUT_FILENO);
       sigusr1_received = 0;
-  }
-  pthread_mutex_unlock(&sigusr1_mutex);  
+    }
+    pthread_mutex_unlock(&sigusr1_mutex);  
 
     bytes_read = read(server_fd, &op_code, sizeof(op_code)); // reads the type of operation
 
