@@ -37,7 +37,7 @@ volatile sig_atomic_t sigusr1_received = 0; // global variable used in the main 
 pthread_mutex_t sigusr1_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
-void sigusr1_handler(int s) {
+void sigusr1_handler(int s) { // handler routine of the SIGUSR1 signal
   (void)s; // unused parameter
   sigusr1_received = 1; // change the status to confirm there was a signal, and let the main thread deal with it outside this routine
   signal(SIGUSR1, sigusr1_handler); // re-associate the SIGUSR1 signal to this routine
