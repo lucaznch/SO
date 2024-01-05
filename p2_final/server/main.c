@@ -7,6 +7,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "common/constants.h"
 #include "common/io.h"
@@ -31,31 +32,27 @@ typedef struct {
   common_arg *common_args;
 } individual_session_args;
 
-
-
 volatile sig_atomic_t sigusr1_received = 0; // global variable used in the main thread, to indicate the signal status. It's the SIGUSR1 flag of the main thread
-pthread_mutex_t sigusr1_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t sigusr1_mutex = PTHREAD_MUTEX_INITIALIZER; // to control the use of the SIGUSR1 flag 
 
 
-void sigusr1_handler(int s) { // handler routine of the SIGUSR1 signal
+
+void sigusr1_handler(int s) { // handler routine for the SIGUSR1 signal
   (void)s; // unused parameter
-  sigusr1_received = 1; // change the status to confirm there was a signal, and let the main thread deal with it outside this routine
+  sigusr1_received = sigusr1_received + 1; // change the status to confirm there was a signal, and let the main thread deal with it outside this routine
   signal(SIGUSR1, sigusr1_handler); // re-associate the SIGUSR1 signal to this routine
 }
-
-
-
 
 void* individual_session(void* args) {
   int session_id = ((individual_session_args*)args)->session_id;
   common_arg* common_args = ((individual_session_args*)args)->common_args;
   session_info* current_session = NULL;
 
+
   sigset_t mask; // represents a set of signals to block in this thread
   sigemptyset(&mask); // initialize the set to an empty set
   sigaddset(&mask, SIGUSR1); // add the SIGUSR1 signal to the set
   pthread_sigmask(SIG_BLOCK, &mask, NULL); // block all the signals of the set, in this thread. Only SIGUSR1 will be blocked, since it's the only signal in the set
-
 
 
   while (1) {
@@ -343,11 +340,21 @@ int main(int argc, char* argv[]) {
 
   mkfifo(argv[1], 0666); // creates the FIFO (named pipe)
 
-  int server_fd = open(argv[1], O_RDONLY); // opens the FIFO
+  int server_fd;
 
-  if (server_fd == -1) { // if the FIFO could not be opened, then it does not exist
-    fprintf(stderr, "Failed to open pipe\n");
-    return 1;
+  signal(SIGUSR1, sigusr1_handler); // associate the SIGUSR1 signal to be handled by sigusr1_handler() routine
+  while ((server_fd = open(argv[1], O_RDONLY)) == -1) { // tries to open the FIFO until it succeeds (to prevent the server from starting before the client)
+    if (errno != EINTR) { // if the FIFO could not be opened because of another reason
+      fprintf(stderr, "Failed to open FIFO\n");
+      return 1;
+    }
+
+    pthread_mutex_lock(&sigusr1_mutex);
+    while (sigusr1_received != 0) { // in the case that we received more than one SIGUSR1 at the same time
+      ems_list_events_signal(STDOUT_FILENO); // if we received SIGUSR1 while waiting for the client, then we list the events (that will be none)
+      sigusr1_received = sigusr1_received - 1;
+    }
+    pthread_mutex_unlock(&sigusr1_mutex); 
   }
   
   pthread_t threads[NUMBER_OF_SESSIONS]; // to store the threads for each session
@@ -383,18 +390,17 @@ int main(int argc, char* argv[]) {
     pthread_create(&threads[i - 1], NULL, individual_session, args); // creates the thread
   }
 
-  signal(SIGUSR1, sigusr1_handler); // associate the SIGUSR1 signal to be handled by sigusr1_handler() routine
 
   char op_code; // to store the type of operation
   ssize_t bytes_read; // to store the number of bytes read
   while (1) {
-
     pthread_mutex_lock(&sigusr1_mutex);
-    if (sigusr1_received) { // if there was a SIGUSR1 signal received
+    while (sigusr1_received != 0) { // if there was a SIGUSR1 signal received
       ems_list_events_signal(STDOUT_FILENO); // print in stdout a list of events IDs along with its seat status
-      sigusr1_received = 0; // reset signal flag
+      sigusr1_received = sigusr1_received - 1; // update SIGUSR1 flag
     }
-    pthread_mutex_unlock(&sigusr1_mutex);  
+    pthread_mutex_unlock(&sigusr1_mutex);   
+
 
     bytes_read = read(server_fd, &op_code, sizeof(op_code)); // reads the type of operation
 
