@@ -4,17 +4,17 @@
 #include <stddef.h>
 
 typedef struct {
-    int return_code; // 0 if the operation was successful, 1 otherwise
-    size_t num_rows; // number of rows of the event
-    size_t num_cols; // number of columns of the event
-    unsigned int *seats; // array of seats
-} show_data;
+	int return_code; // 0 if the operation was successful, 1 otherwise
+	size_t num_rows; // number of rows of the event
+	size_t num_cols; // number of columns of the event
+	unsigned int *seats; // array of seats
+} show_data; // struct to return the data of the show operation
 
 typedef struct {
-    int return_code; // 0 if the operation was successful, 1 otherwise
-    size_t num_events; // number of events
-    unsigned int* events; // array of events
-} list_data;
+	int return_code; // 0 if the operation was successful, 1 otherwise
+	size_t num_events; // number of events
+	unsigned int* events; // array of events
+} list_data; // struct to return the data of the list operation
 
 /// Initializes the EMS state.
 /// @param delay_us Delay in microseconds.
@@ -50,11 +50,11 @@ list_data ems_list_events();
 
 /// Prints all the events.
 /// @param out_fd File descriptor to print the events to.
-void ems_list_events_signal(int out_fd);
+void ems_events_info_for_signal(int out_fd);
 
 /// Prints the given event.
 /// @param out_fd File descriptor to print the event to.
 /// @param event_id Id of the event to print.
-void ems_show_signal(int out_fd, unsigned int event_id);
+void ems_aux_show_for_signal(int out_fd, unsigned int event_id);
 
 #endif  // SERVER_OPERATIONS_H

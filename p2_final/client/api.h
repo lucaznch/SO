@@ -4,18 +4,18 @@
 #include <stddef.h>
 
 typedef struct {
-    int return_code; // 0 if the operation was successful, 1 otherwise
-    int req_fd; // file descriptor to write requests to
-    int resp_fd; // file descriptor to read responses from
-    int session_id; // session id from the server
-} setup_data;
+	int return_code; // 0 if the operation was successful, 1 otherwise
+	int req_fd; // file descriptor to write requests to
+	int resp_fd; // file descriptor to read responses from
+	int session_id; // session id from the server
+} ems_setup_data;
 
 /// Connects to an EMS server.
 /// @param req_pipe_path Path to the name pipe to be created for requests.
 /// @param resp_pipe_path Path to the name pipe to be created for responses.
 /// @param server_pipe_path Path to the name pipe where the server is listening.
-/// @return A setup_data struct with the return code and the file descriptors for requests and responses.
-setup_data ems_setup(char const* req_pipe_path, char const* resp_pipe_path, char const* server_pipe_path);
+/// @return A ems_setup_data struct with the return code and the file descriptors for requests and responses.
+ems_setup_data ems_setup(char const* req_pipe_path, char const* resp_pipe_path, char const* server_pipe_path);
 
 /// Disconnects from an EMS server.
 /// @param req_fd File descriptor to write requests to.

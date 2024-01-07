@@ -5,26 +5,26 @@
 #include <stddef.h>
 
 struct Event {
-  unsigned int id;            /// Event id
-  unsigned int reservations;  /// Number of reservations for the event.
+	unsigned int id;            // Event id
+	unsigned int reservations;  // Number of reservations for the event.
 
-  size_t cols;  /// Number of columns.
-  size_t rows;  /// Number of rows.
+	size_t cols;  // Number of columns.
+	size_t rows;  // Number of rows.
 
-  unsigned int* data;     /// Array of size rows * cols with the reservations for each seat.
-  pthread_mutex_t mutex;  // Mutex to protect the event
+	unsigned int* data;     // Array of size rows * cols with the reservations for each seat.
+	pthread_mutex_t mutex;  // Mutex to protect the event
 };
 
 struct ListNode {
-  struct Event* event;
-  struct ListNode* next;
+	struct Event* event;
+	struct ListNode* next;
 };
 
 // Linked list structure
 struct EventList {
-  struct ListNode* head;  // Head of the list
-  struct ListNode* tail;  // Tail of the list
-  pthread_rwlock_t rwl;   // Mutex to protect the list
+	struct ListNode* head;  // Head of the list
+	struct ListNode* tail;  // Tail of the list
+	pthread_rwlock_t rwl;   // Mutex to protect the list
 };
 
 /// Creates a new event list.
